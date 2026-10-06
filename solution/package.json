@@ -1,0 +1,29 @@
+{
+  "name": "untitled3",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "export:postman": "node scripts/export-postman.mjs",
+    "export:openapi": "node scripts/export-openapi.mjs",
+    "swagger": "node scripts/swagger-server.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint:framework": "node scripts/check-framework.mjs",
+    "verify": "npm run typecheck && npm run lint:framework"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@playwright/cli": "^0.1.22",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.4",
+    "swagger-ui-dist": "^5.33.1",
+    "typescript": "^7.0.2",
+    "yaml": "^2.9.1"
+  },
+  "engines": {
+    "node": ">=20.12"
+  }
+}

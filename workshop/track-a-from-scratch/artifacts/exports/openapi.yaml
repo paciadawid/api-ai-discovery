@@ -1,0 +1,434 @@
+openapi: 3.0.3
+info:
+  title: Bearstore API (discovered)
+  version: 0.1.0
+  description: |-
+    Reverse-engineered from the storefront traffic during QA discovery (`qa/workshop/cartws/01-discovery`). The site has no official API; many endpoints are form posts that return redirects or server-rendered HTML.
+
+    No login is required for these endpoints; a guest session cookie is created on the first request and sent automatically.
+
+    <details><summary><b>Auth and session notes</b></summary>
+
+    # Auth model - cart area
+
+    Sources: the three unit notes.md and endpoints.json files. No claims beyond them.
+
+    ## Summary
+    No login is involved. All ten cart endpoints worked anonymously (authRequired false everywhere). The cart (and wishlist) belongs to a guest visitor identified by cookie.
+
+    ## Session creation
+    - First request without cookies (any page, e.g. GET / or GET /cart or the product page) creates a guest visitor and sets `SMARTSTORE.VISITOR`.
+    - `ASP.NET_SessionId` appears on the first `/shoppingcart/offcanvasshoppingcart` call or the first `GET /cart`.
+    - Add-to-cart (`POST /cart/addproduct/...`) and `POST /shoppingcart/updatecartitem` re-issue `SMARTSTORE.VISITOR` on each response; delete/move responses set no cookie.
+
+    ## Session destruction
+    No logout or session end was exercised or observed. The visitor cookie lives one year. Emptying the cart does not end the visitor.
+
+    ## Cookies and flags
+    | Cookie | Flags observed | Notes |
+    |---|---|---|
+    | `SMARTSTORE.VISITOR` | HttpOnly, secure, 1 year | Binds cart and wishlist to the visitor. Re-set on add and update responses. |
+    | `ASP.NET_SessionId` | flags not recorded by the units | Set on the first offcanvas or /cart call. |
+
+    ## CSRF / anti-forgery
+    No anti-forgery token was seen or needed: every curl replay (add, update, delete, move) succeeded with only the visitor cookie. cart-add observed that omitting `X-Requested-With` still works for add. Whether the other mutating endpoints require it was not tested (cart-update and cart-remove replays sent it for some calls). No Origin/Referer checks were tested.
+
+    ## Object-level access (ownership)
+    - A cart or wishlist line can only be changed or removed by its owner (the visitor whose cookie created it).
+    - updatecartitem with another visitor's or an unknown id: HTTP 500, nothing changed.
+    - deletecartitem and moveitembetweencartandwishlist with another visitor's or an unknown id: HTTP 200 `success:false`, line stays.
+
+    ## Visitor identity in practice (testability)
+    - The three parallel headed browsers appeared to share one guest cart (same IP and User-Agent probably key the guest visitor). Each unit saw lines it had not created, and counters moved on their own.
+    - curl jars with a unique User-Agent each behaved deterministically and were fully isolated.
+    - Tests should use a fresh request context with its own unique User-Agent. Cause of the sharing is unconfirmed (see open questions).
+
+    ## Protected paths
+    None of the explored paths require authentication. `GET /checkout` with an empty cart answered `302 Location: /cart` (read-only check by cart-remove; it is an empty-cart redirect, not a login redirect). Checkout, account and login were not explored in this scope.
+
+    ## Transport requirements related to auth-less POSTs
+    POST endpoints without a body need `Content-Length: 0` (curl `-d ""`), otherwise IIS answers 411.
+
+    </details>
+servers:
+  - url: https://bearstore-testsite.smartbear.com
+tags:
+  - name: CART
+paths:
+  /transocean-chronograph:
+    get:
+      tags:
+        - CART
+      operationId: EP-CART-PRODUCT-PAGE
+      summary: Product detail page that hosts the add-to-cart form (form id pd-form, quantity field addtocart_{productId}.EnteredQuantity).
+      description: |-
+        Product detail page that hosts the add-to-cart form (form id pd-form, quantity field addtocart_{productId}.EnteredQuantity).
+
+        Verified by replaying the request.
+      x-endpoint-id: EP-CART-PRODUCT-PAGE
+      x-verified: true
+      x-state-changing: false
+      responses:
+        "200":
+          description: Success - body contains "HTML title 'Shop. TRANSOCEAN CHRONOGRAPH'; Add to cart link is JS-driven (href '#')"
+          headers:
+            Set-Cookie:
+              description: "Sets: SMARTSTORE.VISITOR (on first visit)"
+              schema:
+                type: string
+          content:
+            text/html:
+              schema:
+                type: string
+        "404":
+          description: Failure - body contains "not exercised for unknown slugs"
+          content:
+            text/html:
+              schema:
+                type: string
+      security: []
+  /cart/addproduct/{productId}/{cartType}:
+    post:
+      tags:
+        - CART
+      operationId: EP-CART-ADD-PRODUCT
+      summary: Add a product to the cart (cartType 1) via XHR form post; repeat adds of the same product accumulate quantity on one cart line.
+      description: |-
+        Add a product to the cart (cartType 1) via XHR form post; repeat adds of the same product accumulate quantity on one cart line.
+
+        **Changes server state.**
+
+        Verified by replaying the request.
+      x-endpoint-id: EP-CART-ADD-PRODUCT
+      x-verified: true
+      x-state-changing: true
+      responses:
+        "200":
+          description: "Success - body contains \"JSON {\"success\":true} (plus a $type property)\"; failure shows \"Invalid quantity: {\"success\":false,\"message\":[\"Quantity should be positive\"]}. Unknown productId 999999: {\"redirect\":\"/\"}. productId 0 or abc: HTTP 404 HTML. GET method: 404. Bodyless POST must still send Content-Length (curl -d '') or IIS returns 411.\" with the same status"
+          headers:
+            Set-Cookie:
+              description: "Sets: SMARTSTORE.VISITOR (re-set each response)"
+              schema:
+                type: string
+          content:
+            text/html:
+              schema:
+                type: string
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: Numeric product id (1 = TRANSOCEAN CHRONOGRAPH). Unknown numeric id gives 200 + redirect JSON; 0 or non-numeric gives 404.
+          schema:
+            type: string
+            example: "1"
+        - name: cartType
+          in: path
+          required: true
+          description: 1 = shopping cart (observed from the UI). Value 99 returned success:true but did not change the cart count; other values not explored.
+          schema:
+            type: string
+            example: "1"
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                addtocart_1.EnteredQuantity:
+                  type: integer
+                  description: Quantity to add. Missing field adds 1. 0, negative or non-numeric gives success:false 'Quantity should be positive'. The {productId} part of the name is the product id, here 1; change it to match the path parameter.
+                  example: 1
+      security: []
+  /shoppingcart/offcanvasshoppingcart:
+    post:
+      tags:
+        - CART
+      operationId: EP-CART-OFFCANVAS
+      summary: Return the mini-cart (offcanvas) HTML fragment with the current cart lines, quantities and subtotal.
+      description: |-
+        Return the mini-cart (offcanvas) HTML fragment with the current cart lines, quantities and subtotal.
+
+        Verified by replaying the request.
+      x-endpoint-id: EP-CART-OFFCANVAS
+      x-verified: true
+      x-state-changing: false
+      responses:
+        "200":
+          description: Success - body contains "text/html fragment div.offcanvas-cart-body with item rows (input name item.EnteredQuantity, data-sci-id = cart line id, data-update-url /shoppingcart/updatecartitem), subtotal, links to /cart and checkout. In the browser, right after an add it also contained an alert 'The product <name> has been successfully added to your cart'; the curl replay did not show that alert."
+          headers:
+            Set-Cookie:
+              description: "Sets: ASP.NET_SessionId (first call), SMARTSTORE.VISITOR"
+              schema:
+                type: string
+          content:
+            text/html:
+              schema:
+                type: string
+        "411":
+          description: "Failure - body contains \"POST without Content-Length: IIS 'HTTP Error 411'. GET also returns 200 with the same fragment.\""
+          content:
+            text/html:
+              schema:
+                type: string
+      security: []
+  /shoppingcart/cartsummary:
+    post:
+      tags:
+        - CART
+      operationId: EP-CART-SUMMARY
+      summary: Return the header counters (cart, wishlist, compare item counts) as JSON; the UI calls it after each add and on every page load.
+      description: |-
+        Return the header counters (cart, wishlist, compare item counts) as JSON; the UI calls it after each add and on every page load.
+
+        Verified by replaying the request.
+      x-endpoint-id: EP-CART-SUMMARY
+      x-verified: true
+      x-state-changing: false
+      responses:
+        "200":
+          description: Success - body contains "JSON {"CartItemsCount":n,"WishlistItemsCount":n,"CompareItemsCount":n}. CartItemsCount is the sum of quantities, not the number of lines."
+          content:
+            text/html:
+              schema:
+                type: string
+        "404":
+          description: Failure - body contains "GET returns 404 HTML; POST without Content-Length returns 411."
+          content:
+            text/html:
+              schema:
+                type: string
+      parameters:
+        - name: cart
+          in: query
+          required: false
+          description: Include CartItemsCount (the UI sends cart=True after an add).
+          schema:
+            type: boolean
+            description: Include CartItemsCount (the UI sends cart=True after an add).
+            example: true
+        - name: wishlist
+          in: query
+          required: false
+          description: Include wishlist counter (page load sends cart=True&wishlist=True&compare=True).
+          schema:
+            type: boolean
+            description: Include wishlist counter (page load sends cart=True&wishlist=True&compare=True).
+            example: true
+        - name: compare
+          in: query
+          required: false
+          description: Include compare counter.
+          schema:
+            type: boolean
+            description: Include compare counter.
+            example: true
+      security: []
+  /shoppingcart/updatecartitem:
+    post:
+      tags:
+        - CART
+      operationId: EP-CART-UPDATE-ITEM
+      summary: Set the quantity of one cart line (identified by sciItemId) and return the recalculated line and order totals as JSON including rendered cart HTML.
+      description: |-
+        Set the quantity of one cart line (identified by sciItemId) and return the recalculated line and order totals as JSON including rendered cart HTML.
+
+        **Changes server state.**
+
+        Verified by replaying the request.
+      x-endpoint-id: EP-CART-UPDATE-ITEM
+      x-verified: true
+      x-state-changing: true
+      responses:
+        "200":
+          description: "Success - body contains \"JSON {success:true, SubTotal:'$9.50 excl tax', message:[], cartHtml:'<html of the cart rows>', displayCheckoutButtons:true, newItemPrice:'$1.90 excl tax'}; cartHtml contains the new line total and the order total; GET /cart then shows the new itemquantity<id> value.\"; failure shows \"Over limit: 200 with JSON {success:false, message:['The maximum quantity allowed for purchase is 10000.'] or ['Your quantity exceeds stock on hand. The maximum quantity that can be added is 8563.'], SubTotal unchanged}; quantity unchanged. Quantity 0 / negative: line is removed but response is 500 {error:true, controller:'shoppingcart', action:'updatecartitem', message:'Object reference not set to an instance of an object.'}. Unknown sciItemId or an item owned by another visitor: 500 same body, nothing changed. Non-numeric/empty/2.5/missing newQuantity: 502 HTML 'Bad Gateway' (awselb/2.0). GET: 404.\" with the same status"
+          headers:
+            Set-Cookie:
+              description: "Sets: SMARTSTORE.VISITOR (re-issued, HttpOnly, secure, 1 year)"
+              schema:
+                type: string
+          content:
+            text/html:
+              schema:
+                type: string
+      parameters:
+        - name: sciItemId
+          in: query
+          required: true
+          description: ShoppingCartItem id of the line, taken from the id/name itemquantity<id> on GET /cart or the data-href of the quantity input.
+          schema:
+            type: string
+            description: ShoppingCartItem id of the line, taken from the id/name itemquantity<id> on GET /cart or the data-href of the quantity input.
+            example: "{{cartItemId}}"
+        - name: isCartPage
+          in: query
+          required: false
+          description: Sent by the UI on /cart; selects the cart-page rendering of the response.
+          schema:
+            type: boolean
+            description: Sent by the UI on /cart; selects the cart-page rendering of the response.
+            example: true
+        - name: newQuantity
+          in: query
+          required: false
+          description: Also accepted in the query string (model binding); the UI sends it in the body.
+          schema:
+            type: integer
+            description: Also accepted in the query string (model binding); the UI sends it in the body.
+            example: 3
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                newQuantity:
+                  type: integer
+                  description: Integer quantity. 1..min(10000, stock) updates the line; 0 or negative removes the line; above 10000 or stock is rejected; non-numeric/empty/decimal/missing yields a 502 from the load balancer.
+                  example: 3
+                isCartPage:
+                  type: boolean
+                  description: UI sends true.
+                  example: true
+                isWishlist:
+                  type: boolean
+                  description: UI sends false.
+                  example: false
+              required:
+                - newQuantity
+      security: []
+  /cart:
+    get:
+      tags:
+        - CART
+      operationId: EP-CART-VIEW
+      summary: Render the shopping cart page (server-rendered HTML), including the empty-cart state and per-line remove/move links.
+      description: |-
+        Render the shopping cart page (server-rendered HTML), including the empty-cart state and per-line remove/move links.
+
+        Verified by replaying the request.
+      x-endpoint-id: EP-CART-VIEW
+      x-verified: true
+      x-state-changing: false
+      responses:
+        "200":
+          description: 'Success - body contains "Non-empty: lines with data-href="/shoppingcart/deletecartitem?cartItemId=<id>" and ".../moveitembetweencartandwishlist?cartItemId=<id>&cartType=ShoppingCart&isCartPage=True" plus inputs itemquantity<id>. Empty: text "Your Shopping Cart is empty!" (data-empty-text attribute is always present, so do not match on it alone)."'
+          headers:
+            Set-Cookie:
+              description: "Sets: ASP.NET_SessionId, SMARTSTORE.VISITOR (on first request)"
+              schema:
+                type: string
+          content:
+            text/html:
+              schema:
+                type: string
+      security: []
+  /shoppingcart/deletecartitem:
+    post:
+      tags:
+        - CART
+      operationId: EP-CART-DELETE-ITEM
+      summary: Remove one line from the cart by its cart item id.
+      description: |-
+        Remove one line from the cart by its cart item id.
+
+        **Changes server state.**
+
+        Verified by replaying the request.
+      x-endpoint-id: EP-CART-DELETE-ITEM
+      x-verified: true
+      x-state-changing: true
+      responses:
+        "200":
+          description: 'Success - body contains "JSON {success:true, message:"The product has been removed.", cartItemCount:<n>, cartHtml, totalsHtml, displayCheckoutButtons}. After the last line cartItemCount is 0."; failure shows "Unknown id, already-removed id, or id owned by another visitor: JSON {success:false, displayCheckoutButtons, message:"An error occurred during the removal of the product."}. GET gives 404 HTML. Missing or non-numeric cartItemId gives 502 Bad Gateway (HTML)." with the same status'
+          content:
+            text/html:
+              schema:
+                type: string
+      parameters:
+        - name: cartItemId
+          in: query
+          required: true
+          description: Cart line id (not product id), taken from the /cart HTML. Ids are global counters, not 1..n.
+          schema:
+            type: string
+            description: Cart line id (not product id), taken from the /cart HTML. Ids are global counters, not 1..n.
+            example: "{{cartItemId}}"
+      security: []
+  /shoppingcart/moveitembetweencartandwishlist:
+    post:
+      tags:
+        - CART
+      operationId: EP-CART-MOVE-TO-WISHLIST
+      summary: Move a cart line to the wishlist (the line leaves the cart and gets a NEW id on the wishlist).
+      description: |-
+        Move a cart line to the wishlist (the line leaves the cart and gets a NEW id on the wishlist).
+
+        **Changes server state.**
+
+        Verified by replaying the request.
+
+        **Variant EP-CART-MOVE-TO-CART:** Move a wishlist line back into the cart (the line gets a NEW id in the cart).
+      x-endpoint-id: EP-CART-MOVE-TO-WISHLIST
+      x-verified: true
+      x-state-changing: true
+      responses:
+        "200":
+          description: 'Success - body contains "JSON {success:true, wasMoved:true, message:"The product has been added to your wishlist", cartHtml, totalsHtml, cartItemCount, displayCheckoutButtons}. Line now appears on /wishlist with a new cartItemId."; failure shows "Unknown id: JSON {success:false, message:"Product could not be added to the shopping cart."} (wording is misleading). POST with no Content-Length: 411 HTML. GET: 404 HTML. Missing cartItemId: 502 HTML." with the same status'
+          content:
+            text/html:
+              schema:
+                type: string
+      parameters:
+        - name: cartItemId
+          in: query
+          required: true
+          description: Id of the line in the cart.
+          schema:
+            type: string
+            description: Id of the line in the cart.
+            example: "{{cartItemId}}"
+        - name: cartType
+          in: query
+          required: true
+          description: "Source list of the line: ShoppingCart (move to wishlist)."
+          schema:
+            type: string
+            description: "Source list of the line: ShoppingCart (move to wishlist)."
+            example: ShoppingCart
+        - name: isCartPage
+          in: query
+          required: false
+          description: UI flag; the UI always sends True. Effect of omitting it not tested.
+          schema:
+            type: boolean
+            description: UI flag; the UI always sends True. Effect of omitting it not tested.
+            example: true
+      security: []
+      x-variants:
+        - id: EP-CART-MOVE-TO-CART
+          summary: Move a wishlist line back into the cart (the line gets a NEW id in the cart).
+          x-verified: true
+  /wishlist:
+    get:
+      tags:
+        - CART
+      operationId: EP-CART-WISHLIST-VIEW
+      summary: Render the wishlist page (server-rendered HTML) so wishlist line ids can be read and emptiness checked.
+      description: |-
+        Render the wishlist page (server-rendered HTML) so wishlist line ids can be read and emptiness checked.
+
+        Verified by replaying the request.
+      x-endpoint-id: EP-CART-WISHLIST-VIEW
+      x-verified: true
+      x-state-changing: false
+      responses:
+        "200":
+          description: 'Success - body contains "Lines carry data-href=".../moveitembetweencartandwishlist?cartItemId=<id>&cartType=Wishlist&isCartPage=True". Empty: "The wishlist is empty!" (data-empty-text also always present)."'
+          content:
+            text/html:
+              schema:
+                type: string
+      security: []

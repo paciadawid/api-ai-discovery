@@ -1,0 +1,9 @@
+node_modules/
+test-results/
+playwright-report/
+.playwright-cli/
+.env
+.env.*
+!.env.example
+exports/
+.playwright-mcp/

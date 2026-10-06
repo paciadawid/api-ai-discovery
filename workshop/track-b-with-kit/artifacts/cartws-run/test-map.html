@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cart workshop: what the tests check</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --ink: #1c2330; --muted: #5d6879; --line: #dde2ea;
+    --given: #6b7280; --when: #2563eb; --then: #15803d; --bug: #b45309; --bugbg: #fff4e0;
+    --get: #0e7490; --post: #7c3aed;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); }
+  header { padding: 28px 32px 8px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  header p { margin: 0; color: var(--muted); }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px 32px 48px; }
+  h2 { margin: 32px 0 12px; font-size: 18px; }
+  code, .ep { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+
+  .overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .tile b { display: block; font-size: 22px; }
+  .tile span { color: var(--muted); font-size: 13px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: #eef1f6; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+  .m { display: inline-block; min-width: 42px; text-align: center; padding: 1px 6px; border-radius: 4px; color: #fff; font-size: 11px; font-weight: 700; }
+  .m.GET { background: var(--get); } .m.POST { background: var(--post); }
+
+  .matrix td, .matrix th { text-align: center; padding: 6px 8px; }
+  .matrix td:first-child, .matrix th:first-child { text-align: left; }
+  .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--when); }
+  .dot.setup { background: var(--given); }
+
+  .test { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin: 16px 0; overflow: hidden; }
+  .test > summary { cursor: pointer; padding: 14px 18px; display: flex; gap: 12px; align-items: baseline; list-style: none; }
+  .test > summary::-webkit-details-marker { display: none; }
+  .test > summary::before { content: "\25B8"; color: var(--muted); }
+  .test[open] > summary::before { content: "\25BE"; }
+  .uc { font-weight: 700; white-space: nowrap; }
+  .title { flex: 1; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--bugbg); color: var(--bug); border: 1px solid #f0cf98; white-space: nowrap; }
+  .body { padding: 4px 18px 18px; border-top: 1px solid var(--line); }
+
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 14px 0 6px; }
+  .step { border-radius: 8px; padding: 5px 10px; color: #fff; font-size: 12.5px; }
+  .step small { display: block; opacity: .85; font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+  .step.given { background: var(--given); } .step.when { background: var(--when); } .step.then { background: var(--then); }
+  .arrow { color: var(--muted); }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; }
+
+  ul.checks { margin: 8px 0 0; padding: 0; list-style: none; }
+  ul.checks li { padding: 4px 0 4px 26px; position: relative; }
+  ul.checks li::before { content: "\2713"; position: absolute; left: 4px; color: var(--then); font-weight: 700; }
+  ul.checks li.bug::before { content: "!"; color: var(--bug); }
+  .sub { margin: 14px 0 4px; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .variant { margin-top: 12px; padding: 10px 14px; background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; }
+  .variant h4 { margin: 0 0 4px; font-size: 14px; }
+  .gaps li { margin: 4px 0; }
+  footer { color: var(--muted); font-size: 13px; margin-top: 32px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Cart workshop: what the tests check</h1>
+  <p>Source: <code>tests/cartws/*.api.spec.ts</code>. 7 use cases, 12 tests, all passing against bearstore-testsite.smartbear.com. Click a test to expand it.</p>
+</header>
+<main>
+
+  <div class="overview">
+    <div class="tile"><b>7</b><span>use cases</span></div>
+    <div class="tile"><b>12</b><span>tests (UC-08 x2, UC-11 x5)</span></div>
+    <div class="tile"><b>9</b><span>endpoints exercised</span></div>
+    <div class="tile"><b>3</b><span>known-issue tests (KI-1 x2, KI-3)</span></div>
+  </div>
+
+  <h2>Endpoints</h2>
+  <table>
+    <tr><th>Name</th><th>Request</th><th>Used to</th></tr>
+    <tr><td>ADD</td><td><span class="m POST">POST</span> <span class="ep">/cart/addproduct/{id}/1</span> &nbsp;form <span class="ep">addtocart_{id}.EnteredQuantity</span></td><td>put a product in the cart</td></tr>
+    <tr><td>CART</td><td><span class="m GET">GET</span> <span class="ep">/cart</span></td><td>read the lines (id, name, quantity, unit price, line total)</td></tr>
+    <tr><td>COUNTERS</td><td><span class="m POST">POST</span> <span class="ep">/shoppingcart/cartsummary?cart=True&amp;wishlist=True&amp;compare=True</span></td><td>read header counters</td></tr>
+    <tr><td>MINI</td><td><span class="m POST">POST</span> <span class="ep">/shoppingcart/offcanvasshoppingcart</span></td><td>read the header mini-cart</td></tr>
+    <tr><td>UPDATE</td><td><span class="m POST">POST</span> <span class="ep">/shoppingcart/updatecartitem?sciItemId={line}&amp;isCartPage=True</span></td><td>change a quantity</td></tr>
+    <tr><td>DELETE</td><td><span class="m POST">POST</span> <span class="ep">/shoppingcart/deletecartitem?cartItemId={line}</span> (<span class="ep">&amp;wishlistItem=True</span> for the wishlist)</td><td>remove a line</td></tr>
+    <tr><td>MOVE</td><td><span class="m POST">POST</span> <span class="ep">/shoppingcart/moveitembetweencartandwishlist?cartItemId={line}&amp;cartType=ShoppingCart|Wishlist</span></td><td>move a line between cart and wishlist</td></tr>
+    <tr><td>WISHLIST</td><td><span class="m GET">GET</span> <span class="ep">/wishlist</span></td><td>read the wishlist lines</td></tr>
+    <tr><td>PRODUCT</td><td><span class="m GET">GET</span> <span class="ep">/{slug}</span></td><td>read a product page</td></tr>
+  </table>
+
+  <h2>Coverage matrix</h2>
+  <p class="legend"><span><span class="dot"></span> exercised by the behaviour under test or read to check the outcome</span> <span><span class="dot setup"></span> only used for setup</span></p>
+  <table class="matrix">
+    <tr><th>Use case</th><th>ADD</th><th>CART</th><th>COUNTERS</th><th>MINI</th><th>UPDATE</th><th>DELETE</th><th>MOVE</th><th>WISHLIST</th><th>PRODUCT</th></tr>
+    <tr><td>UC-01 first product</td><td><span class="dot"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>UC-02 same product again</td><td><span class="dot"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>UC-04 raise quantity</td><td><span class="dot setup"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td></td><td><span class="dot"></span></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>UC-08 quantity 0 / -1</td><td><span class="dot setup"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td></td><td><span class="dot"></span></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>UC-10 remove one by one</td><td><span class="dot setup"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td></td><td><span class="dot"></span></td><td></td><td></td><td></td></tr>
+    <tr><td>UC-11 foreign / unknown ids</td><td><span class="dot setup"></span></td><td><span class="dot"></span></td><td></td><td></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td></td><td></td><td></td></tr>
+    <tr><td>UC-12 cart and wishlist round trip</td><td><span class="dot setup"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td></td><td></td><td></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td></tr>
+  </table>
+
+  <h2>Tests</h2>
+  <p class="legend">
+    <span><i style="background:var(--given)"></i>Given (setup)</span>
+    <span><i style="background:var(--when)"></i>When (behaviour under test)</span>
+    <span><i style="background:var(--then)"></i>Then (observation)</span>
+    <span>Accepted = HTTP 200 and success:true &middot; Refused = HTTP 200 and success:false &middot; Server error = HTTP 500 and error:true</span>
+  </p>
+
+  <details class="test" open>
+    <summary><span class="uc">UC-CARTWS-01</span><span class="title">A first product lands in the cart as one line at its unit price</span></summary>
+    <div class="body">
+      <div class="flow">
+        <span class="step then">cart is empty<small>CART</small></span><span class="arrow">&rarr;</span>
+        <span class="step when">add 1 golfball<small>ADD</small></span><span class="arrow">&rarr;</span>
+        <span class="step then">read lines<small>CART</small></span><span class="arrow">&rarr;</span>
+        <span class="step then">read counters<small>COUNTERS</small></span><span class="arrow">&rarr;</span>
+        <span class="step then">read mini-cart<small>MINI</small></span>
+      </div>
+      <ul class="checks">
+        <li>A new shopper's cart has no lines</li>
+        <li>ADD is accepted, and its Set-Cookie contains <code>SMARTSTORE.VISITOR</code></li>
+        <li>CART has exactly 1 line: golfball, quantity 1, unit price $1.90, line total $1.90</li>
+        <li>COUNTERS: cart 1, wishlist 0, compare 0</li>
+        <li>MINI is text/html and lists the new line</li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="test">
+    <summary><span class="uc">UC-CARTWS-02</span><span class="title">Adding the same product again grows the existing line instead of adding a second one</span></summary>
+    <div class="body">
+      <div class="flow">
+        <span class="step given">has 1 golfball<small>ADD</small></span><span class="arrow">&rarr;</span>
+        <span class="step when">add 3 more<small>ADD</small></span><span class="arrow">&rarr;</span>
+        <span class="step then">read lines<small>CART</small></span><span class="arrow">&rarr;</span>
+        <span class="step then">read counters<small>COUNTERS</small></span>
+      </div>
+      <ul class="checks">
+        <li>ADD is accepted</li>
+        <li>CART still has exactly 1 line, with quantity 4 and line total $7.60</li>
+        <li>The header counter is 4 (it counts units, not lines)</li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="test">
+    <summary><span class="uc">UC-CARTWS-04</span><span class="title">Raising the quantity reprices the same line and the cart totals</span></summary>
+    <div class="body">
+      <div class="flow">
+        <span class="step given">has 1 golfball<small>ADD</small></span><span class="arrow">&rarr;</span>
+        <span class="step when">set quantity to 5<small>UPDATE</small></span><span class="arrow">&rarr;</span>
+        <span class="step then">read lines<small>CART</small></span><span class="arrow">&rarr;</span>
+        <span class="step then">read counters<small>COUNTERS</small></span>
+      </div>
+      <ul class="checks">
+        <li>UPDATE is accepted and the body has no <code>error</code> property</li>
+        <li><code>SubTotal</code> contains $9.50 and <code>newItemPrice</code> contains $1.90</li>
+        <li>The reply carries the re-rendered <code>cartHtml</code></li>
+        <li>CART has the same line id as before, now quantity 5 and line total $9.50</li>
+        <li>The header counter is 5</li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="test">
+    <summary><span class="uc">UC-CARTWS-08</span><span class="title">Quantity 0 or -1 removes the line, but the store answers with a server error</span><span class="tag">known issue KI-1</span></summary>
+    <div class="body">
+      <div class="flow">
+        <span class="step given">has 1 golfball<small>ADD</small></span><span class="arrow">&rarr;</span>
+        <span class="step when">set quantity to 0, or to -1<small>UPDATE</small></span><span class="arrow">&rarr;</span>
+        <span class="step then">read lines<small>CART</small></span><span class="arrow">&rarr;</span>
+        <span class="step then">read counters<small>COUNTERS</small></span>
+      </div>
+      <p class="sub">Two tests, same assertions</p>
+      <ul class="checks">
+        <li class="bug">UPDATE returns HTTP 500 with <code>error:true</code>, controller <code>shoppingcart</code>, action <code>updatecartitem</code>, message "Object reference not set to an instance of an object."</li>
+        <li>CART is empty anyway: the line was removed despite the error</li>
+        <li>The header counter is 0</li>
+      </ul>
+      <p>The tests pin the observed behaviour and are tagged <code>@known-issue</code> with an issue annotation. If the server starts answering cleanly they will fail and flag the change.</p>
+    </div>
+  </details>
+
+  <details class="test">
+    <summary><span class="uc">UC-CARTWS-10</span><span class="title">Removing lines one by one leaves the others untouched until the cart is empty</span></summary>
+    <div class="body">
+      <div class="flow">
+        <span class="step given">has 2 golfballs + 1 chronograph<small>ADD x2</small></span><span class="arrow">&rarr;</span>
+        <span class="step when">remove golfball line<small>DELETE</small></span><span class="arrow">&rarr;</span>
+        <span class="step then">read lines, counters<small>CART, COUNTERS</small></span><span class="arrow">&rarr;</span>
+        <span class="step when">remove chronograph line<small>DELETE</small></span><span class="arrow">&rarr;</span>
+        <span class="step then">read lines, counters, mini-cart<small>CART, COUNTERS, MINI</small></span>
+      </div>
+      <ul class="checks">
+        <li>First DELETE is accepted, message "The product has been removed."</li>
+        <li>CART has exactly 1 line: the chronograph, quantity 1; counter is 1</li>
+        <li>Second DELETE is accepted, <code>cartItemCount</code> is 0</li>
+        <li>CART is empty, counter is 0, and MINI lists no lines</li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="test">
+    <summary><span class="uc">UC-CARTWS-11</span><span class="title">A shopper cannot remove or change lines that are not theirs</span><span class="tag">5 tests &middot; 1 known issue KI-3</span></summary>
+    <div class="body">
+      <p>Setup for all five: shopper and other shopper each have 1 golfball in their own cart (<span class="ep">ADD</span> x2).</p>
+
+      <div class="variant">
+        <h4>Removing a line that does not exist</h4>
+        <div class="flow"><span class="step when">remove line 999999999<small>DELETE</small></span><span class="arrow">&rarr;</span><span class="step then">read lines<small>CART</small></span></div>
+        <ul class="checks"><li>Refused with "An error occurred during the removal of the product."</li><li>The shopper's cart still has 1 line</li></ul>
+      </div>
+
+      <div class="variant">
+        <h4>Removing another shopper's line</h4>
+        <div class="flow"><span class="step when">remove their line id<small>DELETE</small></span><span class="arrow">&rarr;</span><span class="step then">read their lines<small>CART (other)</small></span></div>
+        <ul class="checks"><li>The two shoppers' line ids differ</li><li>Refused with the same removal-failed message</li><li>The other shopper's lines are unchanged</li></ul>
+      </div>
+
+      <div class="variant">
+        <h4>Removing the same line twice</h4>
+        <div class="flow"><span class="step when">remove line<small>DELETE</small></span><span class="arrow">&rarr;</span><span class="step when">remove it again<small>DELETE</small></span><span class="arrow">&rarr;</span><span class="step then">read lines<small>CART</small></span></div>
+        <ul class="checks"><li>First DELETE accepted, second refused with the removal-failed message</li><li>CART is empty</li></ul>
+      </div>
+
+      <div class="variant">
+        <h4>Changing the quantity of another shopper's line <span class="tag">KI-3</span></h4>
+        <div class="flow"><span class="step when">set their line to 2<small>UPDATE</small></span><span class="arrow">&rarr;</span><span class="step then">read their lines<small>CART (other)</small></span></div>
+        <ul class="checks"><li class="bug">HTTP 500 with <code>error:true</code> and the NullReference message (instead of a clean refusal)</li><li>The other shopper's line is unchanged</li></ul>
+      </div>
+
+      <div class="variant">
+        <h4>The delete endpoint does not exist for GET</h4>
+        <div class="flow"><span class="step when"><span class="m GET">GET</span> delete URL with their line id<small>DELETE (GET)</small></span><span class="arrow">&rarr;</span><span class="step then">read their lines<small>CART (other)</small></span></div>
+        <ul class="checks"><li>HTTP 404</li><li>The other shopper's cart still has 1 line</li></ul>
+      </div>
+    </div>
+  </details>
+
+  <details class="test">
+    <summary><span class="uc">UC-CARTWS-12</span><span class="title">A product moved to the wishlist leaves the cart, and moving it back returns it under new line ids</span></summary>
+    <div class="body">
+      <div class="flow">
+        <span class="step then">open product page<small>PRODUCT</small></span><span class="arrow">&rarr;</span>
+        <span class="step given">has 1 chronograph<small>ADD</small></span><span class="arrow">&rarr;</span>
+        <span class="step when">move to wishlist<small>MOVE</small></span><span class="arrow">&rarr;</span>
+        <span class="step then">read cart, wishlist, counters<small>CART, WISHLIST, COUNTERS</small></span><span class="arrow">&rarr;</span>
+        <span class="step when">move back to cart<small>MOVE</small></span><span class="arrow">&rarr;</span>
+        <span class="step then">read cart, wishlist, counters<small>CART, WISHLIST, COUNTERS</small></span>
+      </div>
+      <p class="sub">Product page</p>
+      <ul class="checks">
+        <li>HTTP 200, offers add-to-cart, price matches <code>$24,110.00</code> format</li>
+        <li>The product id in its add-to-cart link is the chronograph's (1)</li>
+      </ul>
+      <p class="sub">Move to the wishlist</p>
+      <ul class="checks">
+        <li>MOVE accepted with <code>wasMoved:true</code></li>
+        <li>CART is empty; the wishlist has the chronograph at quantity 1 under a new line id</li>
+        <li>COUNTERS: cart 0, wishlist 1</li>
+      </ul>
+      <p class="sub">Move back</p>
+      <ul class="checks">
+        <li>MOVE accepted with <code>wasMoved:true</code></li>
+        <li>The cart line is back at quantity 1 with yet another new id</li>
+        <li>The wishlist is empty; COUNTERS: cart 1, wishlist 0</li>
+      </ul>
+    </div>
+  </details>
+
+  <h2>Not covered</h2>
+  <ul class="gaps">
+    <li>Only simple products, and only the golfball and the chronograph.</li>
+    <li>Stock and maximum-quantity limits, coupons, shipping and tax estimation.</li>
+    <li>Logged-in carts (the <code>customer</code> fixture exists but no cart test uses it).</li>
+    <li>Carts surviving a session change (guest cart merging into the customer cart after login).</li>
+  </ul>
+
+  <footer>Every test gets its own shopper with a private cart (unique User-Agent). The fixture empties the cart and wishlist afterwards, even when a test fails.</footer>
+</main>
+</body>
+</html>

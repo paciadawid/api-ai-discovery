@@ -1,0 +1,82 @@
+[
+  {
+    "id": "EP-CART-UPDATE-ITEM",
+    "area": "CART",
+    "unit": "cart-update",
+    "purpose": "Set the quantity of one cart line (identified by sciItemId) and return the recalculated line and order totals as JSON including rendered cart HTML.",
+    "method": "POST",
+    "path": "/shoppingcart/updatecartitem",
+    "query": [
+      {"name": "sciItemId", "example": "{{cartItemId}}", "required": true, "description": "ShoppingCartItem id of the line, taken from the id/name itemquantity<id> on GET /cart or the data-href of the quantity input."},
+      {"name": "isCartPage", "example": "True", "required": false, "description": "Sent by the UI on /cart; selects the cart-page rendering of the response."},
+      {"name": "newQuantity", "example": "3", "required": false, "description": "Also accepted in the query string (model binding); the UI sends it in the body."}
+    ],
+    "contentType": "application/x-www-form-urlencoded; charset=UTF-8",
+    "bodyFields": [
+      {"name": "newQuantity", "example": "3", "required": true, "description": "Integer quantity. 1..min(10000, stock) updates the line; 0 or negative removes the line; above 10000 or stock is rejected; non-numeric/empty/decimal/missing yields a 502 from the load balancer."},
+      {"name": "isCartPage", "example": "true", "required": false, "description": "UI sends true."},
+      {"name": "isWishlist", "example": "false", "required": false, "description": "UI sends false."}
+    ],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["SMARTSTORE.VISITOR (re-issued, HttpOnly, secure, 1 year)"],
+      "bodySignal": "JSON {success:true, SubTotal:'$9.50 excl tax', message:[], cartHtml:'<html of the cart rows>', displayCheckoutButtons:true, newItemPrice:'$1.90 excl tax'}; cartHtml contains the new line total and the order total; GET /cart then shows the new itemquantity<id> value."
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "Over limit: 200 with JSON {success:false, message:['The maximum quantity allowed for purchase is 10000.'] or ['Your quantity exceeds stock on hand. The maximum quantity that can be added is 8563.'], SubTotal unchanged}; quantity unchanged. Quantity 0 / negative: line is removed but response is 500 {error:true, controller:'shoppingcart', action:'updatecartitem', message:'Object reference not set to an instance of an object.'}. Unknown sciItemId or an item owned by another visitor: 500 same body, nothing changed. Non-numeric/empty/2.5/missing newQuantity: 502 HTML 'Bad Gateway' (awselb/2.0). GET: 404."
+    },
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-VIEW",
+    "area": "CART",
+    "unit": "cart-update",
+    "purpose": "Render the shopping cart page with line items, per-line totals, subtotal and order total (read-only here, used to observe the effect of updates).",
+    "method": "GET",
+    "path": "/cart",
+    "query": [],
+    "contentType": null,
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["SMARTSTORE.VISITOR", "ASP.NET_SessionId"],
+      "bodySignal": "HTML; one <input id=\"itemquantity<id>\" value=\"<qty>\" data-href=\"/shoppingcart/updatecartitem?sciItemId=<id>&isCartPage=True\"> per line; text '$X excl tax' for unit price, line total and Subtotal; summary table with Subtotal/Shipping/Tax/Total."
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "Empty cart renders the page without any itemquantity<id> inputs."
+    },
+    "verified": true,
+    "stateChanging": false
+  },
+  {
+    "id": "EP-CART-UPDATE-SETUP-ADD",
+    "area": "CART",
+    "unit": "cart-update",
+    "purpose": "Setup only (owned by unit cart-add): add product 8 (Supreme Golfball, $1.90) quantity 1 to the cart so there is a line to update.",
+    "method": "POST",
+    "path": "/cart/addproduct/8/1",
+    "query": [],
+    "contentType": "none (empty body, but Content-Length: 0 is required)",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["SMARTSTORE.VISITOR"],
+      "bodySignal": "JSON {success:true}"
+    },
+    "failure": {
+      "status": 411,
+      "bodySignal": "HTTP 411 Length Required (HTML, Microsoft-HTTPAPI/2.0) when POST is sent without Content-Length; curl needs -d '' or -H 'Content-Length: 0'."
+    },
+    "verified": true,
+    "stateChanging": true
+  }
+]

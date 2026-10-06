@@ -1,0 +1,2984 @@
+{
+ "meta": {
+  "generated": "2026-10-02",
+  "target": "https://bearstore-testsite.smartbear.com",
+  "sourceLayout": "qa/01-discovery/areas/<area>/ (the units/<unit>/ layout named in the task does not exist); the content area has two folders: content and content-contact-newsletter",
+  "rawRecords": 89,
+  "uniqueEndpoints": 74,
+  "verified": 70,
+  "unverified": 4,
+  "unverifiedIds": [
+   "EP-AUTH-CHANGEPW",
+   "EP-WISHLIST-EMAIL",
+   "EP-CONTENT-NEWSLETTER-ACTIVATION",
+   "EP-CONTENT-PWRECOVERY-CONFIRM"
+  ],
+  "schemaNote": "bodyFields shapes differ per unit and are preserved unchanged; see CONF-10"
+ },
+ "units": {
+  "auth": {
+   "area": "auth",
+   "dir": "areas/auth",
+   "browserDriven": true,
+   "note": "browser for login, register, profile, address, orders, recovery; rest replayed with curl"
+  },
+  "catalog": {
+   "area": "catalog",
+   "dir": "areas/catalog",
+   "browserDriven": true,
+   "note": "browser for navigation, listing facets, product, recently viewed, currency; rest curl"
+  },
+  "search": {
+   "area": "search",
+   "dir": "areas/search",
+   "browserDriven": true,
+   "note": "browser exercised only instant POST and GET /search with q, o, i, s, p; everything else curl replays"
+  },
+  "cart-compare-wishlist": {
+   "area": "cart-compare-wishlist",
+   "dir": "areas/cart-compare-wishlist",
+   "browserDriven": true,
+   "note": "browser for add/update/remove/move/coupon/estimate/checkout entry/compare; edge cases curl"
+  },
+  "content-contact-newsletter": {
+   "area": "content-contact-newsletter",
+   "dir": "areas/content-contact-newsletter",
+   "browserDriven": true,
+   "note": "browser for static pages, blog, contact (client-side validation + valid submit); newsletter AJAX shape and failures via curl"
+  },
+  "content": {
+   "area": "content-contact-newsletter",
+   "dir": "areas/content",
+   "browserDriven": false,
+   "note": "second, older folder for the same area: CURL ONLY (that discoverer had no browser tool), violates the headed-browser rule; not an areas.md unit. Adds password recovery, RSS, sitemap, robots, activation, confirm records"
+  }
+ },
+ "conflicts": [
+  {
+   "id": "CONF-01",
+   "endpoint": "EP-CONTENT-NEWSLETTER-SUBSCRIBE",
+   "units": [
+    "content",
+    "content-contact-newsletter"
+   ],
+   "observations": {
+    "content": "missing 'subscribe' field or empty body -> 502; email containing '<script>' -> 500 (request validation)",
+    "content-contact-newsletter": "502 when subscribe is missing, empty or non-boolean (banana) or email ~250+ chars; an email written in the notes as 'bad<60 a>@example.com' was ACCEPTED and subscribed during a length probe"
+   },
+   "status": "unresolved",
+   "comment": "Not necessarily contradictory (the ccn string may be a placeholder for 'bad' plus 60 a), but the two runs disagree on whether '<' in the email is a 500 or accepted. Re-probe in Stage 2."
+  },
+  {
+   "id": "CONF-02",
+   "endpoint": "502 responses (all areas)",
+   "units": [
+    "catalog",
+    "cart-compare-wishlist",
+    "content",
+    "content-contact-newsletter",
+    "search"
+   ],
+   "observations": {
+    "catalog/content": "502 body is from 'awselb/2.0'",
+    "search": "502 page is 122 bytes HTML without ASP.NET headers (different layer)",
+    "content-contact-newsletter": "502 described as 'tiny nginx-style page'"
+   },
+   "status": "unresolved",
+   "comment": "Fingerprint of the 502 layer is described three ways. Matters only if a test asserts on the 502 body or server header; assert on status only."
+  },
+  {
+   "id": "CONF-03",
+   "endpoint": "EP-AUTH-PWRECOVERY",
+   "units": [
+    "auth",
+    "content"
+   ],
+   "observations": {
+    "auth": "stateChanging true (sends an email); success message observed for a known email",
+    "content": "stateChanging false; success path not observed; without send-email field the POST silently re-renders the form"
+   },
+   "status": "resolved-by-consolidator",
+   "comment": "Kept auth's stateChanging=true (it sends mail). The send-email marker requirement from content is additional, not contradictory; both kept under otherObservations."
+  },
+  {
+   "id": "CONF-04",
+   "endpoint": "EP-CART-SUMMARY / EP-CATALOG-CARTSUMMARY",
+   "units": [
+    "cart-compare-wishlist",
+    "catalog"
+   ],
+   "observations": {
+    "catalog": "POST, empty body, 411 without Content-Length",
+    "cart-compare-wishlist": "POST, empty body, 411 without Content-Length; GET returns 404"
+   },
+   "status": "no-contradiction",
+   "comment": "Same endpoint; deduplicated, cart record kept as primary. Both agree on POST only."
+  },
+  {
+   "id": "CONF-05",
+   "endpoint": "EP-COMPARE-ADD / EP-COMPARE-REMOVE / EP-COMPARE-CLEAR",
+   "units": [
+    "catalog",
+    "cart-compare-wishlist"
+   ],
+   "observations": {
+    "catalog": "cookieless GET /catalog/addproducttocompare/24 returned 302 /compareproducts",
+    "cart-compare-wishlist": "POST returns JSON; GET also adds and 302s to /compareproducts; remove and clear are GET (302); remove via POST returns JSON"
+   },
+   "status": "no-contradiction",
+   "comment": "Compare mutations work on both GET and POST. Recorded as method ambiguity: the primary record lists POST, GET also changes state."
+  },
+  {
+   "id": "CONF-06",
+   "endpoint": "SMARTSTORE.VISITOR behaviour",
+   "units": [
+    "catalog",
+    "cart-compare-wishlist",
+    "content",
+    "auth"
+   ],
+   "observations": {
+    "catalog": "cookieless requests from the same IP+User-Agent get the same GUID; a different UA gets a different GUID; a forged GUID is replaced; currency is stored server side against the GUID",
+    "content": "same GUID on repeated fresh requests, possibly derived from client data",
+    "cart-compare-wishlist": "cookie re-issued on every response; browser cart lost once when the GUID changed between two page loads; item ids changed once without explicit delete",
+    "auth": "cookie 'unchanged' on login; after registering from an empty browser the header showed '1 Shopping Basket'"
+   },
+   "status": "unresolved",
+   "comment": "Individually consistent, jointly unexplained. See open-questions OQ-01."
+  },
+  {
+   "id": "CONF-07",
+   "endpoint": "EP-WISHLIST-SHARED vs areas.md",
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "observations": {
+    "areas.md": "wishlist and checkout: login likely required (verify)",
+    "cart-compare-wishlist": "wishlist, cart, compare and checkout entry all work anonymously"
+   },
+   "status": "resolved-in-favour-of-discovery",
+   "comment": "areas.md guess refuted by observation."
+  },
+  {
+   "id": "CONF-08",
+   "endpoint": "content page hrefs vs areas.md",
+   "units": [
+    "catalog",
+    "content",
+    "content-contact-newsletter"
+   ],
+   "observations": {
+    "areas.md": "/shipping-returns, /payment-info, /about-us, /privacy, /conditions-of-use",
+    "catalog/content/content-contact-newsletter": "real hrefs /shippinginfo /paymentinfo /aboutus /privacyinfo /conditionsofuse; hyphenated slugs 404"
+   },
+   "status": "resolved-in-favour-of-discovery",
+   "comment": "All three discoverers agree."
+  },
+  {
+   "id": "CONF-09",
+   "endpoint": "newsletter form fields vs areas.md",
+   "units": [
+    "content",
+    "content-contact-newsletter"
+   ],
+   "observations": {
+    "areas.md": "field NewsletterEmail, radios optionsRadios",
+    "content/content-contact-newsletter": "footer is not a form; JS posts subscribe, email, GdprConsent to /newsletter/subscribe"
+   },
+   "status": "resolved-in-favour-of-discovery",
+   "comment": "NewsletterEmail and optionsRadios are DOM names only."
+  },
+  {
+   "id": "CONF-10",
+   "endpoint": "per-unit endpoint schema",
+   "units": [
+    "all"
+   ],
+   "observations": {
+    "task description": "records carry purpose, query, bodyFields as {name, example, required, description}",
+    "actual files": "no purpose or query fields; bodyFields is a list of strings (auth, cart, content) or an object name->description (catalog, search); query params sometimes inside bodyFields.query"
+   },
+   "status": "preserved-as-is",
+   "comment": "Records kept unchanged as the rules require. The consolidator added a short 'purpose' string (derived from id/path only) plus areas/units/otherObservations. Stage 2 must normalise bodyFields."
+  }
+ ],
+ "endpoints": [
+  {
+   "id": "EP-AUTH-LOGIN-FORM",
+   "method": "GET",
+   "path": "/login?returnUrl={url}",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "form action=/login?returnUrl=... method=post; fields UsernameOrEmail, Password, RememberMe (checkbox + hidden false); NO __RequestVerificationToken"
+   },
+   "failure": {
+    "status": null,
+    "bodySignal": "none observed; page also renders 200 when already logged in"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "auth",
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "auth",
+    "cart-compare-wishlist"
+   ],
+   "otherObservations": [
+    {
+     "unit": "cart-compare-wishlist",
+     "record": {
+      "id": "EP-CART-LOGIN-GUEST",
+      "method": "GET",
+      "path": "/login?checkoutAsGuest=True&returnUrl=%2Fcart",
+      "contentType": "-",
+      "bodyFields": [],
+      "authRequired": false,
+      "success": {
+       "status": 200,
+       "location": null,
+       "setCookies": [
+        "SMARTSTORE.VISITOR (refreshed on every response)"
+       ],
+       "bodySignal": "login page with \"Checkout as Guest\" link (leads to /checkout)"
+      },
+      "failure": {
+       "status": 0,
+       "bodySignal": "-"
+      },
+      "verified": true,
+      "stateChanging": false
+     }
+    }
+   ],
+   "purpose": "Login form page (also reached as checkout-as-guest entry)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-LOGIN",
+   "method": "POST",
+   "path": "/login?returnUrl={url}",
+   "contentType": "application/x-www-form-urlencoded",
+   "bodyFields": [
+    "UsernameOrEmail (email OR username, case-insensitive)",
+    "Password (case-sensitive)",
+    "RememberMe (true|false)"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 302,
+    "location": "returnUrl value if local path, else /",
+    "setCookies": [
+     "SMARTSTORE.AUTH (HttpOnly, SameSite=Lax, no Secure flag; session cookie when RememberMe=false, expires +30d when RememberMe=true)",
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "empty-ish 131 byte redirect body; subsequent /customer/info returns 200"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "re-rendered login form, div.validation-summary-errors: 'Login was unsuccessful. Please correct the errors and try again.' + <li>The credentials provided are incorrect</li>; same message for unknown user, wrong password, empty fields; no AUTH cookie"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "auth"
+   ],
+   "units": [
+    "auth"
+   ],
+   "purpose": "Log in by email or username, sets SMARTSTORE.AUTH",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-LOGOUT",
+   "method": "GET",
+   "path": "/logout",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 302,
+    "location": "/",
+    "setCookies": [
+     "SMARTSTORE.AUTH= (expired 1999)",
+     "ASP.NET_SessionId"
+    ],
+    "bodySignal": "Object moved; header shows Log in link again"
+   },
+   "failure": {
+    "status": null,
+    "bodySignal": "anonymous call behaves identically (302 /)"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "auth"
+   ],
+   "units": [
+    "auth"
+   ],
+   "purpose": "Log out (GET), expires SMARTSTORE.AUTH cookie",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-REGISTER-FORM",
+   "method": "GET",
+   "path": "/register?returnUrl={url}",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "__RequestVerificationToken (cookie, HttpOnly, secure)",
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "hidden input __RequestVerificationToken in form; fields FirstName, LastName, DateOfBirthDay/Month/Year, Email, Username, Password, ConfirmPassword, Company"
+   },
+   "failure": {
+    "status": null,
+    "bodySignal": "none"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "auth"
+   ],
+   "units": [
+    "auth"
+   ],
+   "purpose": "Registration form with anti-forgery token",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-REGISTER",
+   "method": "POST",
+   "path": "/register?returnUrl={url}",
+   "contentType": "application/x-www-form-urlencoded",
+   "bodyFields": [
+    "__RequestVerificationToken (required, from form + cookie)",
+    "FirstName",
+    "LastName",
+    "DateOfBirthDay",
+    "DateOfBirthMonth",
+    "DateOfBirthYear",
+    "Email (required)",
+    "Username (required server-side)",
+    "Password (6-500)",
+    "ConfirmPassword (must equal)",
+    "Company",
+    "register-button"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 302,
+    "location": "/registerresult/1?returnUrl=<returnUrl lowercased-encoded>",
+    "setCookies": [
+     "SMARTSTORE.AUTH (persistent, +30d; user is auto logged in)"
+    ],
+    "bodySignal": "GET /registerresult/1 -> 200 'Your registration completed'"
+   },
+   "failure": {
+    "status": "200 for validation errors, 500 when token missing",
+    "bodySignal": "duplicate email: 'The specified email already exists'; duplicate username: 'The specified username already exists'; missing Username: 'Username is not provided'; field errors: ''Email' is not a valid email address.', ''Password' must be between 6 and 500 characters. You entered N characters.', 'The password and confirmation password do not match.'; missing/invalid anti-forgery token -> 500 'The required anti-forgery form field \"__RequestVerificationToken\" is not present.'"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "auth"
+   ],
+   "units": [
+    "auth"
+   ],
+   "purpose": "Register account, auto login",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-REGISTERRESULT",
+   "method": "GET",
+   "path": "/registerresult/1?returnUrl={url}",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [],
+    "bodySignal": "'Your registration completed' + Continue link to returnUrl; reachable anonymously too"
+   },
+   "failure": {
+    "status": null,
+    "bodySignal": "none"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "auth"
+   ],
+   "units": [
+    "auth"
+   ],
+   "purpose": "Registration completed page",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-PWRECOVERY-FORM",
+   "method": "GET",
+   "path": "/customer/passwordrecovery",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "form field Email, submit name=send-email; no anti-forgery token"
+   },
+   "failure": {
+    "status": null,
+    "bodySignal": "none"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "auth",
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "auth",
+    "content"
+   ],
+   "otherObservations": [
+    {
+     "unit": "content",
+     "record": {
+      "id": "EP-CONTENT-PWRECOVERY-FORM",
+      "method": "GET",
+      "path": "/customer/passwordrecovery",
+      "contentType": null,
+      "bodyFields": [],
+      "authRequired": false,
+      "success": {
+       "status": 200,
+       "location": null,
+       "setCookies": [
+        "SMARTSTORE.VISITOR"
+       ],
+       "bodySignal": "<h1>Reset password</h1>; form action=/customer/passwordrecovery method=post; field Email (type=email, required); submit button name=send-email; no antiforgery token. Linked from the login page. The scout's /passwordrecovery is 404."
+      },
+      "failure": {
+       "status": 404,
+       "bodySignal": "/passwordrecovery 404 (robots.txt lists /PasswordRecovery but the real route is under /customer)"
+      },
+      "verified": true,
+      "stateChanging": false
+     }
+    }
+   ],
+   "purpose": "Password recovery form",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-PWRECOVERY",
+   "method": "POST",
+   "path": "/customer/passwordrecovery",
+   "contentType": "application/x-www-form-urlencoded",
+   "bodyFields": [
+    "Email",
+    "send-email=Submit"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [],
+    "bodySignal": "'Email with instructions has been sent to you.' (known email)"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "unknown email: 'Email not found.'; invalid: ''Your email address' is not a valid email address.'; empty: ''Your email address' should not be empty.'; no token needed"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "auth",
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "auth",
+    "content"
+   ],
+   "otherObservations": [
+    {
+     "unit": "content",
+     "record": {
+      "id": "EP-CONTENT-PWRECOVERY-SEND",
+      "method": "POST",
+      "path": "/customer/passwordrecovery",
+      "contentType": "application/x-www-form-urlencoded",
+      "bodyFields": [
+       "Email (required, email format)",
+       "send-email (REQUIRED marker: without it the POST just re-renders the empty form with 200 and no message)"
+      ],
+      "authRequired": false,
+      "success": {
+       "status": 200,
+       "location": null,
+       "setCookies": [
+        "SMARTSTORE.VISITOR"
+       ],
+       "bodySignal": "not observed for an existing account (would email a real user; only nonexistent test addresses were used)"
+      },
+      "failure": {
+       "status": 200,
+       "bodySignal": "unknown email: <div class=\"alert alert-danger\">Email not found.</div> (account enumeration possible). Empty: field-validation-error \"'Your email address' should not be empty.\". Malformed: \"'Your email address' is not a valid email address.\"."
+      },
+      "verified": true,
+      "stateChanging": false
+     }
+    }
+   ],
+   "purpose": "Request password-recovery email",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-INFO-GET",
+   "method": "GET",
+   "path": "/customer/info",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": true,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [],
+    "bodySignal": "title 'Shop. Account'; form with FirstName, LastName, DateOfBirth*, Email, Company, token"
+   },
+   "failure": {
+    "status": 302,
+    "bodySignal": "Location: /login?ReturnUrl=%2fcustomer%2finfo (anonymous)"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "auth"
+   ],
+   "units": [
+    "auth"
+   ],
+   "purpose": "Account profile page",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-INFO-POST",
+   "method": "POST",
+   "path": "/customer/info",
+   "contentType": "application/x-www-form-urlencoded",
+   "bodyFields": [
+    "__RequestVerificationToken (required)",
+    "FirstName",
+    "LastName",
+    "DateOfBirthDay",
+    "DateOfBirthMonth",
+    "DateOfBirthYear",
+    "Email",
+    "Company",
+    "save-info-button"
+   ],
+   "authRequired": true,
+   "success": {
+    "status": 302,
+    "location": "/customer/info",
+    "setCookies": [],
+    "bodySignal": "value persisted on re-GET"
+   },
+   "failure": {
+    "status": "200 invalid email ('Email' is not a valid email address.); 500 token missing (also for anonymous)",
+    "bodySignal": "empty LastName is accepted server-side (302) although the form marks it required; omitted fields are overwritten with empty"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "auth"
+   ],
+   "units": [
+    "auth"
+   ],
+   "purpose": "Update account profile",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-ADDRESSES",
+   "method": "GET",
+   "path": "/customer/addresses",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": true,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [],
+    "bodySignal": "'No addresses' or address cards with links /customer/addressedit/{id}, /customer/addressdelete/{id}"
+   },
+   "failure": {
+    "status": 302,
+    "bodySignal": "Location: /login?ReturnUrl=%2fcustomer%2faddresses"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "auth"
+   ],
+   "units": [
+    "auth"
+   ],
+   "purpose": "List saved addresses",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-ADDRESS-ADD",
+   "method": "POST",
+   "path": "/customer/addressadd",
+   "contentType": "application/x-www-form-urlencoded",
+   "bodyFields": [
+    "Address.Id=0",
+    "Address.Company",
+    "Address.FirstName (req)",
+    "Address.LastName (req)",
+    "Address.Address1",
+    "Address.Address2",
+    "Address.City",
+    "Address.ZipPostalCode",
+    "Address.CountryId (0=none,1=United States,62=Poland)",
+    "Address.StateProvinceId",
+    "Address.Email (req)",
+    "Address.PhoneNumber"
+   ],
+   "authRequired": true,
+   "success": {
+    "status": 302,
+    "location": "/customer/addresses",
+    "setCookies": [],
+    "bodySignal": "new id in address list"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "''First name' should not be empty.' / ''Last name' ...' / ''Email' should not be empty.' / ''Email' is not a valid email address.'; anonymous -> 302 /login?ReturnUrl=..; NO anti-forgery token in this form"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "auth"
+   ],
+   "units": [
+    "auth"
+   ],
+   "purpose": "Add address",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-ADDRESS-EDIT",
+   "method": "POST",
+   "path": "/customer/addressedit/{id}",
+   "contentType": "application/x-www-form-urlencoded",
+   "bodyFields": [
+    "Address.Id={id}",
+    "same Address.* fields as add"
+   ],
+   "authRequired": true,
+   "success": {
+    "status": 302,
+    "location": "/customer/addresses",
+    "setCookies": [],
+    "bodySignal": "GET /customer/addressedit/{id} returns 200 prefilled form"
+   },
+   "failure": {
+    "status": 302,
+    "bodySignal": "anonymous -> /login?ReturnUrl=...; foreign or unknown id -> 302 /customer/addresses (ownership enforced)"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "auth"
+   ],
+   "units": [
+    "auth"
+   ],
+   "purpose": "Edit own address",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-ADDRESS-DELETE",
+   "method": "GET",
+   "path": "/customer/addressdelete/{id}",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": true,
+   "success": {
+    "status": 302,
+    "location": "/customer/addresses",
+    "setCookies": [],
+    "bodySignal": "address removed from list (state change via GET, JS confirm only)"
+   },
+   "failure": {
+    "status": 302,
+    "bodySignal": "anonymous -> /login?ReturnUrl=...; foreign id -> /customer/addresses unchanged"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "auth"
+   ],
+   "units": [
+    "auth"
+   ],
+   "purpose": "Delete own address (via GET)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-ORDERS",
+   "method": "GET",
+   "path": "/customer/orders",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": true,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [],
+    "bodySignal": "'No orders' for a fresh account"
+   },
+   "failure": {
+    "status": 302,
+    "bodySignal": "Location: /login?ReturnUrl=%2fcustomer%2forders"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "auth"
+   ],
+   "units": [
+    "auth"
+   ],
+   "purpose": "Order history list",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-CHANGEPW",
+   "method": "POST",
+   "path": "/customer/changepassword",
+   "contentType": "application/x-www-form-urlencoded",
+   "bodyFields": [
+    "__RequestVerificationToken",
+    "OldPassword",
+    "NewPassword",
+    "ConfirmNewPassword"
+   ],
+   "authRequired": true,
+   "success": {
+    "status": "not exercised (would change password)",
+    "location": null,
+    "setCookies": [],
+    "bodySignal": "unknown"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "'Old password doesn't match' ; 'The new password and confirmation password do not match.'; 500 without token"
+   },
+   "verified": false,
+   "stateChanging": true,
+   "areas": [
+    "auth"
+   ],
+   "units": [
+    "auth"
+   ],
+   "purpose": "Change password (success path not exercised)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-AUTH-ACCOUNT-MISC",
+   "method": "GET",
+   "path": "/customer/downloadableproducts | /customer/backinstocksubscriptions | /customer/changepassword",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": "downloadableproducts and changepassword: yes; backinstocksubscriptions: NOT enforced (anonymous 200)",
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [],
+    "bodySignal": "account shell pages"
+   },
+   "failure": {
+    "status": 302,
+    "bodySignal": "Location: /login?ReturnUrl=... for the two protected ones"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "auth"
+   ],
+   "units": [
+    "auth"
+   ],
+   "purpose": "Misc account pages (downloads, back-in-stock subscriptions, change-password form); composite record",
+   "evidence": "browser+curl",
+   "note": "composite record covering three paths (see path); kept as in source"
+  },
+  {
+   "id": "EP-CATALOG-HOME",
+   "method": "GET",
+   "path": "/",
+   "contentType": null,
+   "bodyFields": {},
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (1y, Secure, HttpOnly, SameSite=Lax)"
+    ],
+    "bodySignal": "text/html; <div class=\"page home-page\">; 22 x <article class=\"art\" data-id=N> in .product-grid-home-page; h1 'Welcome to our store.'; /home also returns 200 with same page"
+   },
+   "failure": {
+    "status": null,
+    "bodySignal": "no failure mode observed"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "catalog"
+   ],
+   "units": [
+    "catalog"
+   ],
+   "purpose": "Home page with product tiles",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CATALOG-CATEGORY",
+   "method": "GET",
+   "path": "/{categorySlug}  (books, furniture, sports, gaming, watches, gift-cards, soccer, basketball, golf, jackets, shoes, trousers, sunglasses, spiegel-bestseller, cook-and-enjoy, chairs, sofas, tables, gaming-accessories)",
+   "contentType": null,
+   "bodyFields": {
+    "o": "sort: 1 Featured(default), 5 Name A-Z, 6 Name Z-A, 10 Price low-high, 11 Price high-low, 15 Newest. Unknown value (999, abc) silently falls back to default",
+    "s": "page size: UI offers 12,24(default),36,48,72,120; arbitrary ints accepted (s=2, s=3 work); s=abc or s=1000 -> default (all); s=0 -> HTTP 500",
+    "i": "1-based page index; i=0 / i=-1 -> page 1; i beyond last page -> last page (i=99 returned the last page); pager markup: select#artlist-action-page data-qname=i, a.btn-pager-prev / a.btn-pager-next, 'Page N of M'",
+    "v": "view mode: list | grid. v=list renders <div class='artlist artlist-lines'> instead of artlist-grid. PERSISTED server side in ASP.NET_SessionId session: later requests without v keep list until v=grid",
+    "p": "price facet 'from~to' (e.g. ~25, 10~25, 25~); %7e is the encoded ~. UI presets ~10 ~25 ~50 ~100 ~250 ~500 ~1000 plus custom From/to boxes (#price-range-from, #price-range-to, button #btn-custom-price-range). Non-numeric value ignored",
+    "r": "min rating facet 1..4 (4 = 4 stars and more). r=5 -> empty list; r=0 ignored",
+    "d": "delivery time id facet: 1 available and ready to ship, 2 '2-5 woking days' (sic), 3 '7 working days'; multiple comma separated (d=1,2). Unknown id -> empty list",
+    "a": "a=True 'Include Out of Stock'; a=true also accepted; a=False same as unset"
+   },
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR",
+     "ASP.NET_SessionId (only when v= is used)"
+    ],
+    "bodySignal": "text/html; h1/title 'Shop. <Category>'; products are <article class=\"art\" data-id=ID> with a.href=/<product-slug>, .art-name, price; sub-category tiles are ALSO article.art with data-id = category id and href /<cat-slug>, only rendered on page 1 with no active filter (class artlist-sub-categories hide-on-active-filter); with a RecentlyViewed cookie an extra block .recently-viewed-product-grid with more article.art is appended to every page"
+   },
+   "failure": {
+    "status": 500,
+    "bodySignal": "s=0 -> 'Internal Server Error' HTML page. Unknown slug -> 404 page (see EP-CATALOG-NOTFOUND)"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "catalog"
+   ],
+   "units": [
+    "catalog"
+   ],
+   "purpose": "Category listing with sort, paging, view and facet params",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CATALOG-PRODUCT",
+   "method": "GET",
+   "path": "/{productSlug}  e.g. /ueberman-the-novel (id 24), /cube-chair (id 65), /tissot-t-touch-expert-solar (id 2)",
+   "contentType": null,
+   "bodyFields": {},
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SmartStore.RecentlyViewedProducts=RecentlyViewedProductIds=<id>[&RecentlyViewedProductIds=<id>...] (expires +10 days, Secure, HttpOnly, SameSite=Lax)",
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "text/html; <title>Shop. <name>; h1.pd-name; form#pd-form (POST to same URL); meta itemprop=price / priceCurrency / availability / ratingValue / reviewCount; meta og:type=product; meta sm:pagedata JSON; breadcrumb; add-to-cart data-href=/cart/addproduct/<id>/1 ; wishlist /cart/addproduct/<id>/2 ; compare /catalog/addproducttocompare/<id> ; reviews link /product/reviews/<id>; tier price block for cube-chair; variant inputs named pvari<id>-0-<attrId>-<n>"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "404 page, see EP-CATALOG-NOTFOUND"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "catalog"
+   ],
+   "units": [
+    "catalog"
+   ],
+   "purpose": "Product detail page (sets recently-viewed cookie)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CATALOG-NOTFOUND",
+   "method": "GET",
+   "path": "/{unknownSlug}  e.g. /no-such-product-xyz, /books/spiegel-bestseller, /p/24/ueberman-the-novel",
+   "contentType": null,
+   "bodyFields": {},
+   "authRequired": false,
+   "success": {
+    "status": 404,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "text/html, title 'Shop. 404', <div class=\"page not-found-page\"> h1 '404', 'Sorry! The page you were looking for could not be found.' with Home page button"
+   },
+   "failure": {
+    "status": null,
+    "bodySignal": "n/a. Slug canonicalisation: /Books, /BOOKS?o=5, /books/, /Ueberman-The-Novel, /ueberman-the-novel/ -> 301 to lower-case slug WITHOUT trailing slash, Location uses http:// scheme (not https), query kept"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "catalog"
+   ],
+   "units": [
+    "catalog"
+   ],
+   "purpose": "Catch-all 404 and slug canonicalisation redirects",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CATALOG-NEWPRODUCTS",
+   "method": "GET",
+   "path": "/newproducts",
+   "contentType": null,
+   "bodyFields": {
+    "o,s,i,v": "no effect: always the same 58 products on one page, no sort/pagesize/pager controls rendered"
+   },
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "text/html, h1 \"What's New\", 58 x article.art (ids 1-33,35,36,38,39,40,49-68 observed)"
+   },
+   "failure": {
+    "status": null,
+    "bodySignal": "no failure mode observed"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "catalog"
+   ],
+   "units": [
+    "catalog"
+   ],
+   "purpose": "What's New list (params ignored)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CATALOG-RECENT",
+   "method": "GET",
+   "path": "/recentlyviewedproducts",
+   "contentType": null,
+   "bodyFields": {
+    "cookie SmartStore.RecentlyViewedProducts": "RecentlyViewedProductIds=<id>&RecentlyViewedProductIds=<id>... most recent first"
+   },
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "div.recently-viewed-products-page; article.art per product, most recent first (2,65,24 after viewing 24, then 65, then 2); cookie holds max 8 ids (12 distinct visited -> 8 kept); revisiting moves id to front without duplicate; the cookie can be set by hand"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "empty or bogus ids (99999, abc) -> 200 with <div class=\"alert alert-warning\">The list is empty.</div>"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "catalog"
+   ],
+   "units": [
+    "catalog"
+   ],
+   "purpose": "Recently viewed products (cookie driven)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CATALOG-CURRENCY",
+   "method": "GET",
+   "path": "/changecurrency/{id}?returnUrl={path}   (1 USD, 2 GBP, 3 AUD, 4 CAD)",
+   "contentType": null,
+   "bodyFields": {
+    "id": "1..4 (path)",
+    "returnUrl": "local path; absolute external URL or missing -> /"
+   },
+   "authRequired": false,
+   "success": {
+    "status": 302,
+    "location": "<returnUrl> (relative, e.g. /books); external returnUrl and missing returnUrl -> /",
+    "setCookies": [
+     "SMARTSTORE.VISITOR only; NO currency cookie (stored server side per visitor GUID)"
+    ],
+    "bodySignal": "afterwards meta[itemprop=priceCurrency] changes: ueberman-the-novel USD 16.99 / GBP 10.36 / AUD 15.97 / CAD 16.65"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "id=abc or id=0 -> 404 page; id=99 -> 302 but currency unchanged; POST without body -> 411 (with body -> 302 as GET)"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "catalog"
+   ],
+   "units": [
+    "catalog"
+   ],
+   "purpose": "Switch display currency (stored per visitor GUID)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CATALOG-UPDATEPRODUCTDETAILS",
+   "method": "POST",
+   "path": "/product/updateproductdetails?productId={id}&bundleItemId=0",
+   "contentType": "application/x-www-form-urlencoded; charset=UTF-8 (header X-Requested-With: XMLHttpRequest sent by UI, not required)",
+   "bodyFields": {
+    "pvari{pid}-0-{attrId}-{n}": "selected variant attribute value id (select value or radio value)",
+    "addtocart_{pid}.AddToCart.EnteredQuantity": "quantity, drives tier price"
+   },
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [],
+    "bodySignal": "application/json {\"Partials\":{Attrs,Price,Stock,Variants,OfferActions,TierPrices,BundlePrice (HTML fragments)},\"DynamicThumblUrl\":null,\"GalleryStartIndex\":0,\"GalleryHtml\":null}; cube-chair(65): attr 21-34 value 169 -> $2,999.00 (value 168 -> $2,599.00); qty 5 -> $1,899.05 (tier 4+), no antiforgery token needed"
+   },
+   "failure": {
+    "status": 500,
+    "bodySignal": "unknown productId -> JSON {\"error\":true,\"controller\":\"product\",\"action\":\"updateproductdetails\",\"message\":\"Object reference not set to an instance of an object.\"}; missing productId -> 502 from awselb; GET -> 404; unknown attribute value is ignored (200)"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "catalog"
+   ],
+   "units": [
+    "catalog"
+   ],
+   "purpose": "Recalculate price/stock for selected variant and quantity (XHR)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CATALOG-REVIEWS",
+   "method": "GET",
+   "path": "/product/reviews/{productId}",
+   "contentType": null,
+   "bodyFields": {},
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "text/html; form POST /product/reviews/{id} with __RequestVerificationToken and Rating radios (not exercised); lists all reviews (24 -> 671 review items, ~larger page); login link carries returnUrl"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "unknown/0/-1 id -> 404 page; non-numeric id (abc) -> 502 Bad Gateway from awselb (backend crash/reset)"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "catalog"
+   ],
+   "units": [
+    "catalog"
+   ],
+   "purpose": "Product reviews page",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CATALOG-ASKQUESTIONAJAX",
+   "method": "GET",
+   "path": "/product/askquestionajax/{productId}",
+   "contentType": null,
+   "bodyFields": {},
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "application/json {\"redirect\":\"/product/askquestion/24\"}; /product/askquestion/24 returns 200 (form page; POST not exercised, would send mail)"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "unknown id 99999 also returned 200 (not validated here)"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "catalog"
+   ],
+   "units": [
+    "catalog"
+   ],
+   "purpose": "Ask-a-question redirect JSON",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-SEARCH-PAGE",
+   "method": "GET",
+   "path": "/search",
+   "contentType": "none (query string); response text/html; charset=utf-8",
+   "bodyFields": {
+    "query": {
+     "q": "search term, min 2 chars after server-side handling; param name is case-insensitive (Q works); duplicate q params are comma-joined (q=watch&q=book searches 'watch,book' -> no match)",
+     "c": "category id (int, repeatable; multiple = OR/union: c=12&c=4 gave 5 hits vs 1 for c=12); unknown id -> 0 hits; non-numeric ignored",
+     "p": "price range 'from~to' (either side optional, '~100' = up to 100; reversed '100~10' behaves as 10~100; non-numeric ignored); value is in the current currency",
+     "r": "minimum rating; UI offers 1..4. q=er: r=0,1,2,3 -> 37, r=4 -> 30, r=5 -> 1 (non-increasing); r=9 and r=-1 -> 502 Bad Gateway",
+     "d": "delivery time id (UI: 1,2,3); d=1 -> 11 hits, d=2 -> 2, d=3 -> 24; unknown id (0, 99) -> 0 hits ('did not match')",
+     "a": "availability flag a=True; a=False/1 produced the unfiltered count on this dataset",
+     "o": "sort order: 1 Relevance, 5 Name A-Z, 6 Name Z-A, 10 Price low-high, 11 Price high-low, 15 Newest; unknown/non-numeric falls back to relevance",
+     "s": "page size: UI offers 12,24,36,48,72,120; default 24; any positive int accepted (s=5 gives 5, s=1000 and non-numeric give all/1-38); s=0 -> 'did not match' message; s=-1 -> 502",
+     "i": "1-based page index; 0, negative, non-numeric -> page 1; beyond last page -> last page",
+     "v": "view mode list|grid; v=list switches class 'artlist-lines', anything else -> grid"
+    }
+   },
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": "SMARTSTORE.VISITOR (1y, secure, HttpOnly, SameSite=Lax) on every response; ASP.NET_SessionId (HttpOnly, SameSite=Lax) once s or v is used",
+    "bodySignal": "<title> 'Shop. Search result for \"<q>\"'; <h1> 'Search result for <small class=search-term>q</small>'; <h5 class=search-hitcount> '1-24 of 38'; one <article class=\"art\" data-id=\"N\"> per hit with link /<product-slug>; facet sidebar with data-href links /search?q=..&c=|p=|r=|d=|a="
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "q missing/blank/1 char: <title> 'Shop. Search' and text 'The minimum length for the search term is 2 characters.'; no hits: <div class=\"alert alert-warning\"> 'Your search did not match any products.', title still 'Search result for \"zzzz\"'. Server errors (s=-1, r=9, r=-1): 502 Bad Gateway text/html 122 bytes. Overlong URL (q of 20000 chars): 414."
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "search"
+   ],
+   "units": [
+    "search"
+   ],
+   "purpose": "Full search results with q, c, p, r, d, a, o, s, i, v",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-SEARCH-PAGE-POST",
+   "method": "POST",
+   "path": "/search",
+   "contentType": "application/x-www-form-urlencoded",
+   "bodyFields": {
+    "q": "search term"
+   },
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": "SMARTSTORE.VISITOR",
+    "bodySignal": "same HTML as GET /search?q=; no antiforgery token required. Not used by the UI (header form is GET)"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "q= empty -> 'The minimum length for the search term is 2 characters.'"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "search"
+   ],
+   "units": [
+    "search"
+   ],
+   "purpose": "Full search via POST (not used by UI)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-SEARCH-INSTANT",
+   "method": "POST",
+   "path": "/instantsearch",
+   "contentType": "application/x-www-form-urlencoded; charset=UTF-8 (browser sends X-Requested-With: XMLHttpRequest, Accept: text/html; neither is required)",
+   "bodyFields": {
+    "q": "search term; client only fires from 2 chars (data-minlength=2), one request per keystroke"
+   },
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": "SMARTSTORE.VISITOR",
+    "bodySignal": "text/html fragment (no layout): <h6 class=instasearch-group-header>Hits</h6><ul class='instasearch-hits has-thumbs'><li><a class=instasearch-hit href=/<slug>> with thumb img (?size=72), name with <span class='instasearch-match'> highlight, and secondary description. Max 10 hits (q=er has 38 full results but 10 hits). Same relevance order as /search"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "no match: body is 3 bytes of whitespace ('\\n\\n\\n', content-type text/html). q empty, 1 char, whitespace-only, or JSON body: 200 with content-length 0 and no content-type. POST without any body/Content-Length: 411 Length Required (HTTP.sys). GET /instantsearch: 404 'The resource cannot be found.' (ASP.NET HTML error page)"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "search"
+   ],
+   "units": [
+    "search"
+   ],
+   "purpose": "Instant search HTML fragment (max 10 hits)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-SEARCH-TRAILING-SLASH",
+   "method": "GET",
+   "path": "/search/ and /Search",
+   "contentType": "none",
+   "bodyFields": {
+    "query": "q preserved"
+   },
+   "authRequired": false,
+   "success": {
+    "status": 301,
+    "location": "http://bearstore-testsite.smartbear.com/search?q=<q> (scheme http, not https)",
+    "setCookies": "none observed",
+    "bodySignal": "redirect to canonical lowercase path without trailing slash"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "/instantsearch/, /catalog/search, /search/advanced all 404"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "search"
+   ],
+   "units": [
+    "search"
+   ],
+   "purpose": "Search path canonicalisation redirect",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CART-ADD-CART",
+   "method": "POST",
+   "path": "/cart/addproduct/{productId}/1",
+   "contentType": "application/x-www-form-urlencoded; charset=UTF-8",
+   "bodyFields": [
+    "addtocart_{productId}.EnteredQuantity (int 1..10000; optional, field name is not actually checked, missing/unknown field adds 1)"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "JSON {\"success\":true} ($type AnonymousType28). Quantity is MERGED into an existing line for the same product."
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "JSON {\"success\":false,\"message\":[\"Quantity should be positive\"]} for 0, negative, non-integer, abc, >int32; {\"message\":[\"The maximum quantity allowed for purchase is 10000.\"]} when requested or existing+requested > 10000. Unknown productId -> 200 {\"redirect\":\"/\"}. Non-numeric productId -> 404 HTML. GET -> 404 IIS page. Unknown shoppingCartType 0/-1 -> 404 HTML; 9 -> 200 success:true but nothing added; 99999999999 -> 502 Bad Gateway"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Add product to cart (XHR)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CART-ADD-WISHLIST",
+   "method": "POST",
+   "path": "/cart/addproduct/{productId}/2",
+   "contentType": "application/x-www-form-urlencoded; charset=UTF-8",
+   "bodyFields": [
+    "addtocart_{productId}.EnteredQuantity (int 1..10000)"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "JSON {\"success\":true}; merged into existing wishlist line. WishlistItemsCount in cartsummary = sum of quantities"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "Same JSON errors as add-to-cart (\"Quantity should be positive\", \"The maximum quantity allowed for purchase is 10000.\")"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Add product to wishlist (XHR)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CART-OFFCANVAS-CART",
+   "method": "POST",
+   "path": "/shoppingcart/offcanvasshoppingcart",
+   "contentType": "none (empty body)",
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "HTML fragment: success alert \"The product <strong>NAME</strong> has been successfully added to your cart\", lines with data-sci-id, data-update-url=/shoppingcart/updatecartitem, remove link /shoppingcart/deletecartitem?cartItemId=ID, subtotal, Go to cart, Checkout (/login?checkoutAsGuest=True&returnUrl=%2Fcart for anonymous)"
+   },
+   "failure": {
+    "status": 0,
+    "bodySignal": "none observed"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Mini-cart HTML fragment",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CART-OFFCANVAS-WISHLIST",
+   "method": "POST",
+   "path": "/shoppingcart/offcanvaswishlist",
+   "contentType": "none",
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "HTML fragment with wishlist lines, links to /wishlist"
+   },
+   "failure": {
+    "status": 0,
+    "bodySignal": "none observed"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Mini-wishlist HTML fragment",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CART-SUMMARY",
+   "method": "POST",
+   "path": "/shoppingcart/cartsummary?cart=True&wishlist=True&compare=True",
+   "contentType": "none (empty body; curl needs -d '' else 411)",
+   "bodyFields": [
+    "query flags cart, wishlist, compare (any combination)"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "JSON {\"CartItemsCount\":n,\"WishlistItemsCount\":n,\"CompareItemsCount\":n}; counts are SUM OF QUANTITIES for cart/wishlist, number of products for compare. GET returns 404"
+   },
+   "failure": {
+    "status": 411,
+    "bodySignal": "POST without Content-Length -> 411"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist",
+    "catalog"
+   ],
+   "units": [
+    "cart-compare-wishlist",
+    "catalog"
+   ],
+   "otherObservations": [
+    {
+     "unit": "catalog",
+     "record": {
+      "id": "EP-CATALOG-CARTSUMMARY",
+      "method": "POST",
+      "path": "/shoppingcart/cartsummary?cart=True&wishlist=True&compare=True",
+      "contentType": "none (empty body, needs Content-Length: 0)",
+      "bodyFields": {},
+      "authRequired": false,
+      "success": {
+       "status": 200,
+       "location": null,
+       "setCookies": [
+        "SMARTSTORE.VISITOR"
+       ],
+       "bodySignal": "application/json {\"CartItemsCount\":0,\"WishlistItemsCount\":0,\"CompareItemsCount\":0} (header counters; fired on every page load by the browser). Owned by cart-compare-wishlist area, recorded only because it is on every catalog page"
+      },
+      "failure": {
+       "status": 411,
+       "bodySignal": "POST with no Content-Length header (curl -X POST without data) -> 411 Length Required"
+      },
+      "verified": true,
+      "stateChanging": false
+     }
+    }
+   ],
+   "purpose": "Header counters JSON for cart, wishlist, compare (fired on every page)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CART-VIEW",
+   "method": "GET",
+   "path": "/cart",
+   "contentType": "-",
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "HTML. Empty: \"Your Shopping Cart is empty!\". Lines have input name=itemquantity{sciId} (form field) and data-href=/shoppingcart/updatecartitem?sciItemId={id}&isCartPage=True; totals table .cart-summary (Subtotal, Shipping, Tax, Total)"
+   },
+   "failure": {
+    "status": 0,
+    "bodySignal": "none"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Cart page with totals",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CART-UPDATE",
+   "method": "POST",
+   "path": "/shoppingcart/updatecartitem?sciItemId={sciId}&isCartPage=True",
+   "contentType": "application/x-www-form-urlencoded; charset=UTF-8",
+   "bodyFields": [
+    "newQuantity",
+    "isCartPage=true",
+    "isWishlist=true|false"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "JSON {success:true, SubTotal:\"$50.85 excl tax\", message:[], cartHtml, totalsHtml, displayCheckoutButtons:true, newItemPrice:\"$16.95 excl tax\"}. For isWishlist=true, SubTotal/totalsHtml reflect the CART, not the wishlist (totalsHtml empty)"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "newQuantity>10000 -> 200 {\"success\":false,\"message\":[\"The maximum quantity allowed for purchase is 10000.\"]} (line unchanged). newQuantity<=0 (0, -1, -3) DELETES the line and then returns 500 JSON {\"error\":true,\"controller\":\"shoppingcart\",\"action\":\"updatecartitem\",\"message\":\"Object reference not set to an instance of an object.\"}. Unknown/foreign/deleted sciItemId -> same 500 JSON. newQuantity=abc, 1.5, empty or >int32 -> 502 Bad Gateway. 10000 accepted: subtotal $169,500.00"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Update cart or wishlist line quantity",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CART-DELETE",
+   "method": "POST",
+   "path": "/shoppingcart/deletecartitem?cartItemId={sciId}[&wishlistItem=True]",
+   "contentType": "none (empty body)",
+   "bodyFields": [
+    "query cartItemId, wishlistItem"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "JSON {cartItemCount:n, success:true, message:\"The product has been removed.\", cartHtml, totalsHtml, displayCheckoutButtons}"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "unknown/already deleted/foreign id -> 200 {\"success\":false,\"message\":\"An error occurred during the removal of the product.\"}; non-numeric or missing id -> 502; GET -> 404. Foreign (other visitor) item NOT deletable (no IDOR)"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Remove cart or wishlist line",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CART-MOVE",
+   "method": "POST",
+   "path": "/shoppingcart/moveitembetweencartandwishlist?cartItemId={id}&cartType=ShoppingCart|Wishlist[&isCartPage=True]",
+   "contentType": "none (empty body)",
+   "bodyFields": [
+    "query cartItemId, cartType"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "JSON {success:true, wasMoved:true, message:\"The product has been added to your wishlist\" | \"...to your shopping cart\", cartHtml, totalsHtml, cartItemCount, displayCheckoutButtons}. Quantity merges into destination line"
+   },
+   "failure": {
+    "status": 0,
+    "bodySignal": "not probed"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Move line between cart and wishlist",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CART-COUPON",
+   "method": "POST",
+   "path": "/cart",
+   "contentType": "multipart/form-data",
+   "bodyFields": [
+    "itemquantity{sciId}",
+    "discountcouponcode",
+    "applydiscountcouponcode=applydiscountcouponcode",
+    "(browser also sends giftcardcouponcode, CountryId, StateProvinceId, ZipPostalCode); urlencoded body works too"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 0,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "no valid coupon available; success path not observed"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "HTML re-render with alert-danger \"The coupon code you entered couldn't be applied to your order\" (invalid and empty codes)"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Apply discount coupon (form POST /cart)",
+   "evidence": "browser+curl",
+   "note": "shares method and path POST /cart with sibling records; the operation is selected by the submit-button field"
+  },
+  {
+   "id": "EP-CART-GIFTCARD",
+   "method": "POST",
+   "path": "/cart",
+   "contentType": "multipart/form-data",
+   "bodyFields": [
+    "itemquantity{sciId}",
+    "giftcardcouponcode",
+    "applygiftcardcouponcode=applygiftcardcouponcode"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 0,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "no valid gift card code available; success path not observed"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "HTML re-render with alert-danger \"The coupon code you entered couldn't be applied to your order\" inside #cart-action-giftcard-body (same text as coupon) for invalid and empty codes"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Apply gift card code (form POST /cart)",
+   "evidence": "browser+curl",
+   "note": "shares method and path POST /cart with sibling records; the operation is selected by the submit-button field"
+  },
+  {
+   "id": "EP-CART-ESTIMATE-SHIPPING",
+   "method": "POST",
+   "path": "/cart",
+   "contentType": "multipart/form-data",
+   "bodyFields": [
+    "itemquantity{sciId}",
+    "CountryId (1=US, 2=Canada, 3=Germany default, 4=Austria, 5=Switzerland)",
+    "StateProvinceId",
+    "ZipPostalCode",
+    "estimateshipping=Estimate shipping"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "HTML with alert-success listing shipping options: In-Store Pickup ($0.00), By Ground ($0.00)"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "Unknown CountryId 999999 still returns same options (no validation); empty zip accepted"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Estimate shipping (form POST /cart)",
+   "evidence": "browser+curl",
+   "note": "shares method and path POST /cart with sibling records; the operation is selected by the submit-button field"
+  },
+  {
+   "id": "EP-CART-STATES",
+   "method": "GET",
+   "path": "/country/getstatesbycountryid?countryId={id}&addEmptyStateIfRequired=true",
+   "contentType": "-",
+   "bodyFields": [
+    "countryId",
+    "addEmptyStateIfRequired"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "JSON array of {id,name}, e.g. countryId=1 -> \"AA (Armed Forces Americas)\" ..."
+   },
+   "failure": {
+    "status": 0,
+    "bodySignal": "not probed"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "States by country JSON",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CART-CONTINUE",
+   "method": "POST",
+   "path": "/cart",
+   "contentType": "multipart/form-data",
+   "bodyFields": [
+    "itemquantity{sciId}",
+    "continueshopping=continueshopping"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 302,
+    "location": "/",
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "redirect home"
+   },
+   "failure": {
+    "status": 0,
+    "bodySignal": "-"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Continue shopping (form POST /cart)",
+   "evidence": "browser+curl",
+   "note": "shares method and path POST /cart with sibling records; the operation is selected by the submit-button field"
+  },
+  {
+   "id": "EP-CART-STARTCHECKOUT",
+   "method": "POST",
+   "path": "/cart",
+   "contentType": "multipart/form-data",
+   "bodyFields": [
+    "itemquantity{sciId}",
+    "startcheckout=startcheckout"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 302,
+    "location": "anonymous: /login?checkoutAsGuest=True&returnUrl=%2Fcart ; logged in: /checkout (then 302 /checkout/billingaddress)",
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "redirect"
+   },
+   "failure": {
+    "status": 0,
+    "bodySignal": "-"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Start checkout (form POST /cart)",
+   "evidence": "browser+curl",
+   "note": "shares method and path POST /cart with sibling records; the operation is selected by the submit-button field"
+  },
+  {
+   "id": "EP-CHECKOUT-ENTRY",
+   "method": "GET",
+   "path": "/checkout",
+   "contentType": "-",
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 302,
+    "location": "/checkout/billingaddress (cart non-empty; works anonymous AND with guest/login)",
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "Billing address form"
+   },
+   "failure": {
+    "status": 302,
+    "bodySignal": "empty cart -> 302 /cart (billingaddress and confirm too)"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Checkout entry redirect",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CHECKOUT-STEPS",
+   "method": "GET",
+   "path": "/checkout/billingaddress | shippingaddress | shippingmethod | paymentmethod | confirm",
+   "contentType": "-",
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "HTML; h1: Billing address / Shipping address / Select shipping method / Select payment method / \"Please confirm your order.\" (confirm shows JS error list when address missing). /checkout/paymentinfo and /checkout/completed -> 404. Steps are NOT strictly gated by previous steps for a non-empty cart"
+   },
+   "failure": {
+    "status": 302,
+    "bodySignal": "empty cart -> /cart"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Checkout step pages (billing, shipping, method, payment, confirm); read only",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CHECKOUT-BILLING-POST",
+   "method": "POST",
+   "path": "/checkout/billingaddress",
+   "contentType": "application/x-www-form-urlencoded",
+   "bodyFields": [
+    "NewAddress.Id=0",
+    "NewAddress.FirstName*",
+    "NewAddress.LastName*",
+    "NewAddress.Email*",
+    "NewAddress.CountryId",
+    "NewAddress.StateProvinceId",
+    "NewAddress.Company/Address1/Address2/City/ZipPostalCode/PhoneNumber (optional)",
+    "nextstep"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 0,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "valid submit NOT performed (would create address on the guest customer); only invalid probe done"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "re-render with field errors: 'First name' should not be empty. / 'Last name' should not be empty. / 'Email' is not a valid email address."
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Submit billing address (only invalid probe done)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-WISHLIST-VIEW",
+   "method": "GET",
+   "path": "/wishlist",
+   "contentType": "-",
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "HTML, works anonymously. Form POST /wishlist; lines like cart (itemquantity{id}); \"Your wishlist URL for sharing\" = /wishlist/{SMARTSTORE.VISITOR guid}; Email a friend -> /shoppingcart/emailwishlist"
+   },
+   "failure": {
+    "status": 0,
+    "bodySignal": "-"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Wishlist page",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-WISHLIST-SHARED",
+   "method": "GET",
+   "path": "/wishlist/{customerGuid}",
+   "contentType": "-",
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "Read-only \"Wishlist of\" page, no auth. Unknown all-zero guid -> 302 /; non-guid text -> 200 (renders own wishlist)"
+   },
+   "failure": {
+    "status": 302,
+    "bodySignal": "unknown guid -> /"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Public shared wishlist by customer GUID",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-WISHLIST-EMAIL",
+   "method": "GET",
+   "path": "/shoppingcart/emailwishlist",
+   "contentType": "-",
+   "bodyFields": [
+    "(POST fields FriendEmail, YourEmailAddress, PersonalMessage - POST NOT performed, sends email)"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "form page, anonymous access"
+   },
+   "failure": {
+    "status": 0,
+    "bodySignal": "-"
+   },
+   "verified": false,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Email-a-friend wishlist form (POST not done)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-COMPARE-ADD",
+   "method": "POST",
+   "path": "/catalog/addproducttocompare/{productId}",
+   "contentType": "none (empty body; curl needs -d '')",
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "sm.CompareProducts=CompareProductIds={id}&CompareProductIds={id}... ; expires +10 days; path=/; secure; HttpOnly"
+    ],
+    "bodySignal": "JSON {\"success\":true,\"message\":\"The product 'NAME' was added to the compare list.\"}"
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "unknown id -> {\"success\":false,\"message\":{... \"Text\":\"Product could not be added.\"}}; non-numeric id -> 502; GET works too and 302 -> /compareproducts (adds). Max 4 products; adding a 5th evicts the oldest; list shown newest first; duplicates not repeated"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Add product to compare cookie (POST and GET both work)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-COMPARE-OFFCANVAS",
+   "method": "POST",
+   "path": "/catalog/offcanvascompare",
+   "contentType": "none",
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "HTML fragment with compare items and remove links /catalog/removeproductfromcompare/{id}"
+   },
+   "failure": {
+    "status": 0,
+    "bodySignal": "-"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Compare mini-list HTML fragment",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-COMPARE-VIEW",
+   "method": "GET",
+   "path": "/compareproducts",
+   "contentType": "-",
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "HTML comparison table; empty: \"The compare list is empty.\"; Clear list link /catalog/clearcomparelist"
+   },
+   "failure": {
+    "status": 0,
+    "bodySignal": "-"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Compare table page",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-COMPARE-REMOVE",
+   "method": "GET",
+   "path": "/catalog/removeproductfromcompare/{productId}",
+   "contentType": "-",
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 302,
+    "location": "/compareproducts",
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "redirect (GET, used by page UI). POST variant returns JSON {success:true,message:\"The product 'NAME' was removed from the compare list.\"}"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "id not in list / unknown -> 404 HTML"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Remove product from compare (GET)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-COMPARE-CLEAR",
+   "method": "GET",
+   "path": "/catalog/clearcomparelist",
+   "contentType": "-",
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 302,
+    "location": "/compareproducts",
+    "setCookies": [
+     "SMARTSTORE.VISITOR (refreshed on every response)"
+    ],
+    "bodySignal": "list emptied (CompareItemsCount 0)"
+   },
+   "failure": {
+    "status": 0,
+    "bodySignal": "-"
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "cart-compare-wishlist"
+   ],
+   "units": [
+    "cart-compare-wishlist"
+   ],
+   "purpose": "Clear compare list (GET)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CONTENT-ABOUTUS",
+   "method": "GET",
+   "path": "/aboutus",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR (HttpOnly; Secure; SameSite=Lax; 1y, re-sent on every response)"
+    ],
+    "bodySignal": "text/html; charset=utf-8; <title>Shop. About Us</title>; cache-control: private; no <h1>"
+   },
+   "failure": {
+    "status": 301,
+    "bodySignal": "/AboutUs and /aboutus/ 301 to http://.../aboutus (note: http scheme, not https); http:// 301 to https://"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content",
+    "content-contact-newsletter"
+   ],
+   "otherObservations": [
+    {
+     "unit": "content-contact-newsletter",
+     "record": {
+      "id": "EP-CCN-PAGE-ABOUT",
+      "method": "GET",
+      "path": "/aboutus",
+      "contentType": null,
+      "bodyFields": [],
+      "authRequired": false,
+      "success": {
+       "status": 200,
+       "location": null,
+       "setCookies": [
+        "SMARTSTORE.VISITOR"
+       ],
+       "bodySignal": "h1 'About Us'"
+      },
+      "failure": {
+       "status": 404,
+       "bodySignal": "/about-us -> 404"
+      },
+      "verified": true,
+      "stateChanging": false
+     }
+    }
+   ],
+   "purpose": "Static page About Us",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CONTENT-SHIPPINGINFO",
+   "method": "GET",
+   "path": "/shippinginfo",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "title 'Shop. Shipping & Returns'"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "n/a"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content",
+    "content-contact-newsletter"
+   ],
+   "otherObservations": [
+    {
+     "unit": "content-contact-newsletter",
+     "record": {
+      "id": "EP-CCN-PAGE-SHIPPING",
+      "method": "GET",
+      "path": "/shippinginfo",
+      "contentType": null,
+      "bodyFields": [],
+      "authRequired": false,
+      "success": {
+       "status": 200,
+       "location": null,
+       "setCookies": [
+        "SMARTSTORE.VISITOR"
+       ],
+       "bodySignal": "h1 'Shipping & Returns'"
+      },
+      "failure": {
+       "status": 404,
+       "bodySignal": "/shipping-returns -> 404 HTML with h1 404"
+      },
+      "verified": true,
+      "stateChanging": false
+     }
+    }
+   ],
+   "purpose": "Static page Shipping & Returns",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CONTENT-PAYMENTINFO",
+   "method": "GET",
+   "path": "/paymentinfo",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "title 'Shop. Payment info'"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "n/a"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content",
+    "content-contact-newsletter"
+   ],
+   "otherObservations": [
+    {
+     "unit": "content-contact-newsletter",
+     "record": {
+      "id": "EP-CCN-PAGE-PAYMENT",
+      "method": "GET",
+      "path": "/paymentinfo",
+      "contentType": null,
+      "bodyFields": [],
+      "authRequired": false,
+      "success": {
+       "status": 200,
+       "location": null,
+       "setCookies": [
+        "SMARTSTORE.VISITOR"
+       ],
+       "bodySignal": "h1 'Payment info'"
+      },
+      "failure": {
+       "status": 404,
+       "bodySignal": "/payment-info -> 404"
+      },
+      "verified": true,
+      "stateChanging": false
+     }
+    }
+   ],
+   "purpose": "Static page Payment info",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CONTENT-PRIVACYINFO",
+   "method": "GET",
+   "path": "/privacyinfo",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "title 'Shop. Privacy policy'"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "n/a"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content",
+    "content-contact-newsletter"
+   ],
+   "otherObservations": [
+    {
+     "unit": "content-contact-newsletter",
+     "record": {
+      "id": "EP-CCN-PAGE-PRIVACY",
+      "method": "GET",
+      "path": "/privacyinfo",
+      "contentType": null,
+      "bodyFields": [],
+      "authRequired": false,
+      "success": {
+       "status": 200,
+       "location": null,
+       "setCookies": [
+        "SMARTSTORE.VISITOR"
+       ],
+       "bodySignal": "h1 'Privacy policy'"
+      },
+      "failure": {
+       "status": 404,
+       "bodySignal": "/privacy -> 404"
+      },
+      "verified": true,
+      "stateChanging": false
+     }
+    }
+   ],
+   "purpose": "Static page Privacy policy",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CONTENT-CONDITIONSOFUSE",
+   "method": "GET",
+   "path": "/conditionsofuse",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "title 'Shop. Conditions of use'"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "n/a"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content",
+    "content-contact-newsletter"
+   ],
+   "otherObservations": [
+    {
+     "unit": "content-contact-newsletter",
+     "record": {
+      "id": "EP-CCN-PAGE-CONDITIONS",
+      "method": "GET",
+      "path": "/conditionsofuse",
+      "contentType": null,
+      "bodyFields": [],
+      "authRequired": false,
+      "success": {
+       "status": 200,
+       "location": null,
+       "setCookies": [
+        "SMARTSTORE.VISITOR"
+       ],
+       "bodySignal": "h1 'Conditions of use'"
+      },
+      "failure": {
+       "status": 404,
+       "bodySignal": "/conditions-of-use -> 404"
+      },
+      "verified": true,
+      "stateChanging": false
+     }
+    }
+   ],
+   "purpose": "Static page Conditions of use",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CONTENT-DISCLAIMER",
+   "method": "GET",
+   "path": "/disclaimer",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "title 'Shop. Disclaimer'"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "n/a"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content",
+    "content-contact-newsletter"
+   ],
+   "otherObservations": [
+    {
+     "unit": "content-contact-newsletter",
+     "record": {
+      "id": "EP-CCN-PAGE-DISCLAIMER",
+      "method": "GET",
+      "path": "/disclaimer",
+      "contentType": null,
+      "bodyFields": [],
+      "authRequired": false,
+      "success": {
+       "status": 200,
+       "location": null,
+       "setCookies": [
+        "SMARTSTORE.VISITOR"
+       ],
+       "bodySignal": "h1 'Disclaimer'"
+      },
+      "failure": {
+       "status": 404,
+       "bodySignal": "n/a"
+      },
+      "verified": true,
+      "stateChanging": false
+     }
+    }
+   ],
+   "purpose": "Static page Disclaimer",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CONTENT-BLOG-PAGE",
+   "method": "GET",
+   "path": "/blog",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": null,
+    "location": null,
+    "setCookies": [],
+    "bodySignal": "never succeeds: blog/news pages are not available"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "html page with <title>Shop. 404</title> and <h1>404</h1>. The footer link href=\"/blog\" on every page leads here (broken link). /news, /newslist, /blog/rss/1 also 404."
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content",
+    "content-contact-newsletter"
+   ],
+   "otherObservations": [
+    {
+     "unit": "content-contact-newsletter",
+     "record": {
+      "id": "EP-CCN-BLOG-GET",
+      "method": "GET",
+      "path": "/blog",
+      "contentType": null,
+      "bodyFields": [],
+      "authRequired": false,
+      "success": {
+       "status": null,
+       "location": null,
+       "setCookies": [],
+       "bodySignal": "never observed 200"
+      },
+      "failure": {
+       "status": 404,
+       "bodySignal": "HTML 404 page, title 'Shop. 404', h1 '404'. Footer and header menu both link to /blog. /blog/ -> 301"
+      },
+      "verified": true,
+      "stateChanging": false
+     }
+    }
+   ],
+   "purpose": "Blog page (linked, always 404)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CONTENT-CONTACT-FORM",
+   "method": "GET",
+   "path": "/contactus",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "<h1>Contact Us</h1>; form action=/contactus method=post with FullName (optional), Email (type=email, required), Enquiry (textarea, required), submit button name=send-email; no captcha, no __RequestVerificationToken, no maxlength attributes"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "n/a"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content",
+    "content-contact-newsletter"
+   ],
+   "otherObservations": [
+    {
+     "unit": "content-contact-newsletter",
+     "record": {
+      "id": "EP-CCN-PAGE-CONTACT-GET",
+      "method": "GET",
+      "path": "/contactus",
+      "contentType": null,
+      "bodyFields": [],
+      "authRequired": false,
+      "success": {
+       "status": 200,
+       "location": null,
+       "setCookies": [
+        "SMARTSTORE.VISITOR"
+       ],
+       "bodySignal": "<title>Shop. Contact Us</title>, h1 'Contact Us', form.contact-form action=/contactus method=post with FullName, Email, Enquiry, button send-email; no __RequestVerificationToken, no captcha"
+      },
+      "failure": {
+       "status": 301,
+       "bodySignal": "/contactus/ and /CONTACTUS redirect 301 to http://bearstore-testsite.smartbear.com/contactus (note http scheme)"
+      },
+      "verified": true,
+      "stateChanging": false
+     }
+    }
+   ],
+   "purpose": "Contact us form page",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CONTENT-CONTACT-SEND",
+   "method": "POST",
+   "path": "/contactus",
+   "contentType": "application/x-www-form-urlencoded",
+   "bodyFields": [
+    "FullName (optional)",
+    "Email (required, email format)",
+    "Enquiry (required, whitespace-only rejected)",
+    "send-email (not required; the browser submit button sends it, curl without it also works)"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "HTML page containing <div class=\"alert alert-success\">Your enquiry has been successfully sent to the store owner.</div>; form is no longer rendered (no 'contact-form' in body). NOT a redirect (no PRG)."
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "HTML form re-rendered with <div class=\"validation-summary-errors\"> list items plus field-validation-error spans: \"'Your email' should not be empty.\", \"'Your email' is not a valid email address.\", \"'Enquiry' should not be empty.\". Values containing '<' or '>' in any field give 500 Internal Server Error (ASP.NET 'A potentially dangerous Request.Form value was detected'). No antiforgery token needed. No length limit observed (5000-char Enquiry and 300-char FullName accepted)."
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content",
+    "content-contact-newsletter"
+   ],
+   "otherObservations": [
+    {
+     "unit": "content-contact-newsletter",
+     "record": {
+      "id": "EP-CCN-CONTACT-POST",
+      "method": "POST",
+      "path": "/contactus",
+      "contentType": "application/x-www-form-urlencoded",
+      "bodyFields": [
+       "FullName (optional)",
+       "Email (required, email format)",
+       "Enquiry (required, non-whitespace)",
+       "send-email (empty, submit button)"
+      ],
+      "authRequired": false,
+      "success": {
+       "status": 200,
+       "location": null,
+       "setCookies": [
+        "SMARTSTORE.VISITOR"
+       ],
+       "bodySignal": "HTML re-render (no redirect) containing div.alert.alert-success 'Your enquiry has been successfully sent to the store owner.'"
+      },
+      "failure": {
+       "status": 200,
+       "bodySignal": "HTML re-render with div.validation-summary-errors and span.field-validation-error: \"'Your email' should not be empty.\" / \"'Your email' is not a valid email address.\" / \"'Enquiry' should not be empty.\" (whitespace-only Enquiry also rejected); no success alert"
+      },
+      "verified": true,
+      "stateChanging": true
+     }
+    }
+   ],
+   "purpose": "Send contact enquiry to store owner",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CONTENT-NEWSLETTER-SUBSCRIBE",
+   "method": "POST",
+   "path": "/newsletter/subscribe",
+   "contentType": "application/x-www-form-urlencoded (sent by footer JS via jQuery $.ajax; no X-Requested-With needed)",
+   "bodyFields": [
+    "subscribe ('true' = subscribe, 'false' = unsubscribe; REQUIRED, omitting it gives 502)",
+    "email",
+    "GdprConsent (true/false/empty; ignored in observed behaviour)"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "application/json: {\"$type\":\"<>f__AnonymousType24`2[...]\",\"Success\":true,\"Result\":\"Thank you for signing up! A verification email has been sent. We appreciate your interest.\"} for subscribe=true; Result \"A verification email has been sent. Thank you!\" for subscribe=false. Double opt-in: both need an emailed confirmation link, so nothing becomes active from the POST alone. Same response for duplicate subscribe, repeated unsubscribe, and unsubscribe of an address that never subscribed (no account enumeration)."
+   },
+   "failure": {
+    "status": 200,
+    "bodySignal": "JSON {\"Success\":false,\"Result\":\"Enter valid email\"} for empty or malformed email. Missing 'subscribe' field or empty body: 502 Bad Gateway from awselb/2.0 (text/html, backend crashes). Email containing '<script>': 500 (request validation). GET: 404 (POST only). JSON content type body (application/json) works and behaves as unsubscribe/subscribe via model binding: observed 200 Success true for {subscribe:'false'}. POST with no body and no Content-Length: 411."
+   },
+   "verified": true,
+   "stateChanging": true,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content",
+    "content-contact-newsletter"
+   ],
+   "otherObservations": [
+    {
+     "unit": "content-contact-newsletter",
+     "record": {
+      "id": "EP-CCN-NEWSLETTER-SUBSCRIBE",
+      "method": "POST",
+      "path": "/newsletter/subscribe",
+      "contentType": "application/x-www-form-urlencoded (JSON body also accepted)",
+      "bodyFields": [
+       "subscribe (true|false, required, bool)",
+       "email",
+       "GdprConsent (observed empty on subscribe, 'true' on unsubscribe from UI; value not enforced)"
+      ],
+      "authRequired": false,
+      "success": {
+       "status": 200,
+       "location": null,
+       "setCookies": [
+        "SMARTSTORE.VISITOR"
+       ],
+       "bodySignal": "JSON {\"$type\":...,\"Success\":true,\"Result\":\"Thank you for signing up! A verification email has been sent. We appreciate your interest.\"} for subscribe=true; Result 'A verification email has been sent. Thank you!' for subscribe=false (also for never-subscribed email)"
+      },
+      "failure": {
+       "status": 200,
+       "bodySignal": "JSON Success:false, Result:'Enter valid email' for empty/missing/malformed email. HTTP 502 Bad Gateway (text/html) when subscribe is missing, empty or non-boolean (e.g. banana) or when email is about 250+ chars. GET returns 404."
+      },
+      "verified": true,
+      "stateChanging": true
+     }
+    }
+   ],
+   "purpose": "Footer newsletter subscribe/unsubscribe (double opt-in, JSON)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CONTENT-NEWSLETTER-ACTIVATION",
+   "method": "GET",
+   "path": "/newsletter/subscriptionactivation",
+   "contentType": null,
+   "bodyFields": [
+    "token (guid) and active (bool) from the emailed link; exact route shape unconfirmed"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": null,
+    "location": null,
+    "setCookies": [],
+    "bodySignal": "not observed (needs the emailed token)"
+   },
+   "failure": {
+    "status": 502,
+    "bodySignal": "bare GET (no token): 502 Bad Gateway from awselb. /newsletter/subscriptionactivation/{guid}/true and ?token=guid&active=true: 404 (Shop. 404 page). /newsletter/subscriptionactivation/{guid}?active=true: 502."
+   },
+   "verified": false,
+   "stateChanging": true,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content"
+   ],
+   "purpose": "Newsletter activation link (route unconfirmed)",
+   "evidence": "curl-only"
+  },
+  {
+   "id": "EP-CONTENT-PWRECOVERY-CONFIRM",
+   "method": "GET",
+   "path": "/customer/passwordrecoveryconfirm",
+   "contentType": null,
+   "bodyFields": [
+    "token",
+    "email (query; from the emailed link)"
+   ],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "bare GET renders a form with 'New password' and 'Confirm password'. With a bogus token and email: 200 and no visible error message in the GET. POST behaviour not probed."
+   },
+   "failure": {
+    "status": null,
+    "bodySignal": "not determined"
+   },
+   "verified": false,
+   "stateChanging": false,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content"
+   ],
+   "purpose": "Password recovery confirm form (token from email)",
+   "evidence": "curl-only"
+  },
+  {
+   "id": "EP-CONTENT-RSS-NEWS",
+   "method": "GET",
+   "path": "/news/rss/1",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "application/rss+xml; charset=utf-8; RSS 2.0 channel 'SmartStore - News' with zero items. /news/rss (no id) also 200. The /news HTML page is 404."
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "/rss, /rss/news are 404"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content"
+   ],
+   "purpose": "News RSS feed (empty)",
+   "evidence": "curl-only"
+  },
+  {
+   "id": "EP-CONTENT-RSS-BLOG",
+   "method": "GET",
+   "path": "/blog/rss",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "application/rss+xml; channel 'SmartStore - Blog' (channel link is /blog, which 404s). /blog/rss/1 is 404."
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "/blog/rss/1"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content",
+    "content-contact-newsletter"
+   ],
+   "otherObservations": [
+    {
+     "unit": "content-contact-newsletter",
+     "record": {
+      "id": "EP-CCN-BLOG-RSS",
+      "method": "GET",
+      "path": "/blog/rss",
+      "contentType": null,
+      "bodyFields": [],
+      "authRequired": false,
+      "success": {
+       "status": 200,
+       "location": null,
+       "setCookies": [
+        "SMARTSTORE.VISITOR"
+       ],
+       "bodySignal": "content-type application/rss+xml; RSS 2.0 channel 'SmartStore - Blog' with zero <item> elements"
+      },
+      "failure": {
+       "status": null,
+       "bodySignal": "n/a"
+      },
+      "verified": true,
+      "stateChanging": false
+     }
+    }
+   ],
+   "purpose": "Blog RSS feed (empty)",
+   "evidence": "browser+curl"
+  },
+  {
+   "id": "EP-CONTENT-RSS-NEWPRODUCTS",
+   "method": "GET",
+   "path": "/newproducts/rss",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [
+     "SMARTSTORE.VISITOR"
+    ],
+    "bodySignal": "application/rss+xml; RSS 2.0 'SmartStore - Recently added products', about 69 KB with item/guid entries linking to product slugs"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "n/a"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content"
+   ],
+   "purpose": "New products RSS feed",
+   "evidence": "curl-only"
+  },
+  {
+   "id": "EP-CONTENT-SITEMAP-XML",
+   "method": "GET",
+   "path": "/sitemap.xml",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [],
+    "bodySignal": "text/xml urlset of category URLs with lastmod; /sitemap (no extension) is 301 to /"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "n/a"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content"
+   ],
+   "purpose": "XML sitemap",
+   "evidence": "curl-only"
+  },
+  {
+   "id": "EP-CONTENT-ROBOTS",
+   "method": "GET",
+   "path": "/robots.txt",
+   "contentType": null,
+   "bodyFields": [],
+   "authRequired": false,
+   "success": {
+    "status": 200,
+    "location": null,
+    "setCookies": [],
+    "bodySignal": "text/plain; User-agent: * ; Sitemap line; Disallow list that includes /Newsletter/Subscribe, /PasswordRecovery, /blog/tag/, /blog/month/ (hint that a blog module exists but is not enabled)"
+   },
+   "failure": {
+    "status": 404,
+    "bodySignal": "n/a"
+   },
+   "verified": true,
+   "stateChanging": false,
+   "areas": [
+    "content-contact-newsletter"
+   ],
+   "units": [
+    "content"
+   ],
+   "purpose": "robots.txt",
+   "evidence": "curl-only"
+  }
+ ]
+}

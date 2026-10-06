@@ -1,0 +1,76 @@
+[
+  {
+    "id": "EP-CART-PRODUCT-PAGE",
+    "area": "cart",
+    "unit": "cart-add",
+    "purpose": "Product detail page that hosts the add-to-cart form (form id pd-form, quantity field addtocart_{productId}.EnteredQuantity).",
+    "method": "GET",
+    "path": "/transocean-chronograph",
+    "query": [],
+    "contentType": null,
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR (on first visit)"], "bodySignal": "HTML title 'Shop. TRANSOCEAN CHRONOGRAPH'; Add to cart link is JS-driven (href '#')"},
+    "failure": {"status": 404, "bodySignal": "not exercised for unknown slugs"},
+    "verified": true,
+    "stateChanging": false
+  },
+  {
+    "id": "EP-CART-ADD-PRODUCT",
+    "area": "cart",
+    "unit": "cart-add",
+    "purpose": "Add a product to the cart (cartType 1) via XHR form post; repeat adds of the same product accumulate quantity on one cart line.",
+    "method": "POST",
+    "path": "/cart/addproduct/{productId}/{cartType}",
+    "query": [],
+    "contentType": "application/x-www-form-urlencoded; charset=UTF-8",
+    "bodyFields": [
+      {"name": "addtocart_{productId}.EnteredQuantity", "example": "1", "required": false, "description": "Quantity to add. Missing field adds 1. 0, negative or non-numeric gives success:false 'Quantity should be positive'."}
+    ],
+    "pathParams": [
+      {"name": "productId", "example": "1", "description": "Numeric product id (1 = TRANSOCEAN CHRONOGRAPH). Unknown numeric id gives 200 + redirect JSON; 0 or non-numeric gives 404."},
+      {"name": "cartType", "example": "1", "description": "1 = shopping cart (observed from the UI). Value 99 returned success:true but did not change the cart count; other values not explored."}
+    ],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR (re-set each response)"], "bodySignal": "JSON {\"success\":true} (plus a $type property)"},
+    "failure": {"status": 200, "bodySignal": "Invalid quantity: {\"success\":false,\"message\":[\"Quantity should be positive\"]}. Unknown productId 999999: {\"redirect\":\"/\"}. productId 0 or abc: HTTP 404 HTML. GET method: 404. Bodyless POST must still send Content-Length (curl -d '') or IIS returns 411."},
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-OFFCANVAS",
+    "area": "cart",
+    "unit": "cart-add",
+    "purpose": "Return the mini-cart (offcanvas) HTML fragment with the current cart lines, quantities and subtotal.",
+    "method": "POST",
+    "path": "/shoppingcart/offcanvasshoppingcart",
+    "query": [],
+    "contentType": null,
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["ASP.NET_SessionId (first call)", "SMARTSTORE.VISITOR"], "bodySignal": "text/html fragment div.offcanvas-cart-body with item rows (input name item.EnteredQuantity, data-sci-id = cart line id, data-update-url /shoppingcart/updatecartitem), subtotal, links to /cart and checkout. In the browser, right after an add it also contained an alert 'The product <name> has been successfully added to your cart'; the curl replay did not show that alert."},
+    "failure": {"status": 411, "bodySignal": "POST without Content-Length: IIS 'HTTP Error 411'. GET also returns 200 with the same fragment."},
+    "verified": true,
+    "stateChanging": false
+  },
+  {
+    "id": "EP-CART-SUMMARY",
+    "area": "cart",
+    "unit": "cart-add",
+    "purpose": "Return the header counters (cart, wishlist, compare item counts) as JSON; the UI calls it after each add and on every page load.",
+    "method": "POST",
+    "path": "/shoppingcart/cartsummary",
+    "query": [
+      {"name": "cart", "example": "True", "required": false, "description": "Include CartItemsCount (the UI sends cart=True after an add)."},
+      {"name": "wishlist", "example": "True", "required": false, "description": "Include wishlist counter (page load sends cart=True&wishlist=True&compare=True)."},
+      {"name": "compare", "example": "True", "required": false, "description": "Include compare counter."}
+    ],
+    "contentType": null,
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": [], "bodySignal": "JSON {\"CartItemsCount\":n,\"WishlistItemsCount\":n,\"CompareItemsCount\":n}. CartItemsCount is the sum of quantities, not the number of lines."},
+    "failure": {"status": 404, "bodySignal": "GET returns 404 HTML; POST without Content-Length returns 411."},
+    "verified": true,
+    "stateChanging": false
+  }
+]

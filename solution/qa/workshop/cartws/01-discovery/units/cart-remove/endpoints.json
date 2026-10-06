@@ -1,0 +1,92 @@
+[
+  {
+    "id": "EP-CART-VIEW",
+    "area": "cart",
+    "unit": "cart-remove",
+    "purpose": "Render the shopping cart page (server-rendered HTML), including the empty-cart state and per-line remove/move links.",
+    "method": "GET",
+    "path": "/cart",
+    "query": [],
+    "contentType": null,
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["ASP.NET_SessionId", "SMARTSTORE.VISITOR (on first request)"], "bodySignal": "Non-empty: lines with data-href=\"/shoppingcart/deletecartitem?cartItemId=<id>\" and \".../moveitembetweencartandwishlist?cartItemId=<id>&cartType=ShoppingCart&isCartPage=True\" plus inputs itemquantity<id>. Empty: text \"Your Shopping Cart is empty!\" (data-empty-text attribute is always present, so do not match on it alone)."},
+    "failure": {"status": null, "bodySignal": "No failure observed; anonymous works."},
+    "verified": true,
+    "stateChanging": false
+  },
+  {
+    "id": "EP-CART-DELETE-ITEM",
+    "area": "cart",
+    "unit": "cart-remove",
+    "purpose": "Remove one line from the cart by its cart item id.",
+    "method": "POST",
+    "path": "/shoppingcart/deletecartitem",
+    "query": [
+      {"name": "cartItemId", "example": "{{cartItemId}}", "required": true, "description": "Cart line id (not product id), taken from the /cart HTML. Ids are global counters, not 1..n."}
+    ],
+    "contentType": "none (empty body; send Content-Length: 0, e.g. curl -d '')",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": [], "bodySignal": "JSON {success:true, message:\"The product has been removed.\", cartItemCount:<n>, cartHtml, totalsHtml, displayCheckoutButtons}. After the last line cartItemCount is 0."},
+    "failure": {"status": 200, "bodySignal": "Unknown id, already-removed id, or id owned by another visitor: JSON {success:false, displayCheckoutButtons, message:\"An error occurred during the removal of the product.\"}. GET gives 404 HTML. Missing or non-numeric cartItemId gives 502 Bad Gateway (HTML)."},
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-MOVE-TO-WISHLIST",
+    "area": "cart",
+    "unit": "cart-remove",
+    "purpose": "Move a cart line to the wishlist (the line leaves the cart and gets a NEW id on the wishlist).",
+    "method": "POST",
+    "path": "/shoppingcart/moveitembetweencartandwishlist",
+    "query": [
+      {"name": "cartItemId", "example": "{{cartItemId}}", "required": true, "description": "Id of the line in the cart."},
+      {"name": "cartType", "example": "ShoppingCart", "required": true, "description": "Source list of the line: ShoppingCart (move to wishlist)."},
+      {"name": "isCartPage", "example": "True", "required": false, "description": "UI flag; the UI always sends True. Effect of omitting it not tested."}
+    ],
+    "contentType": "none (empty body; send Content-Length: 0, otherwise IIS answers 411)",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": [], "bodySignal": "JSON {success:true, wasMoved:true, message:\"The product has been added to your wishlist\", cartHtml, totalsHtml, cartItemCount, displayCheckoutButtons}. Line now appears on /wishlist with a new cartItemId."},
+    "failure": {"status": 200, "bodySignal": "Unknown id: JSON {success:false, message:\"Product could not be added to the shopping cart.\"} (wording is misleading). POST with no Content-Length: 411 HTML. GET: 404 HTML. Missing cartItemId: 502 HTML."},
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-MOVE-TO-CART",
+    "area": "cart",
+    "unit": "cart-remove",
+    "purpose": "Move a wishlist line back into the cart (the line gets a NEW id in the cart).",
+    "method": "POST",
+    "path": "/shoppingcart/moveitembetweencartandwishlist",
+    "query": [
+      {"name": "cartItemId", "example": "{{wishlistItemId}}", "required": true, "description": "Id of the line on the wishlist, from the /wishlist HTML."},
+      {"name": "cartType", "example": "Wishlist", "required": true, "description": "Source list of the line: Wishlist (move to cart)."},
+      {"name": "isCartPage", "example": "True", "required": false, "description": "UI flag; the UI sends True."}
+    ],
+    "contentType": "none (empty body; send Content-Length: 0)",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": [], "bodySignal": "JSON {success:true, wasMoved:true, message:\"The product has been added to your shopping cart\", cartHtml, totalsHtml, cartItemCount, displayCheckoutButtons}."},
+    "failure": {"status": 200, "bodySignal": "Unknown id: JSON {success:false, message:\"Product could not be added to the shopping cart.\"}."},
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-WISHLIST-VIEW",
+    "area": "cart",
+    "unit": "cart-remove",
+    "purpose": "Render the wishlist page (server-rendered HTML) so wishlist line ids can be read and emptiness checked.",
+    "method": "GET",
+    "path": "/wishlist",
+    "query": [],
+    "contentType": null,
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": [], "bodySignal": "Lines carry data-href=\".../moveitembetweencartandwishlist?cartItemId=<id>&cartType=Wishlist&isCartPage=True\". Empty: \"The wishlist is empty!\" (data-empty-text also always present)."},
+    "failure": {"status": null, "bodySignal": "No failure observed."},
+    "verified": true,
+    "stateChanging": false
+  }
+]

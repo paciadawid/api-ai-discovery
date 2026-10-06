@@ -1,0 +1,717 @@
+{
+  "info": {
+    "_postman_id": "9e4f7661-5fbd-46fa-819a-dbbbb2237f02",
+    "name": "Bearstore API (discovered)",
+    "description": "Generated from QA discovery (`qa/01-discovery/endpoints.json`). Regenerate with `npm run export:postman`.\nSession is cookie based: run the AUTH folder first (Postman keeps cookies between requests), and fill `email` / `password` in the environment.\n\n---\n# Auth model - cart area\n\nSources: the three unit notes.md and endpoints.json files. No claims beyond them.\n\n## Summary\nNo login is involved. All ten cart endpoints worked anonymously (authRequired false everywhere). The cart (and wishlist) belongs to a guest visitor identified by cookie.\n\n## Session creation\n- First request without cookies (any page, e.g. GET / or GET /cart or the product page) creates a guest visitor and sets `SMARTSTORE.VISITOR`.\n- `ASP.NET_SessionId` appears on the first `/shoppingcart/offcanvasshoppingcart` call or the first `GET /cart`.\n- Add-to-cart (`POST /cart/addproduct/...`) and `POST /shoppingcart/updatecartitem` re-issue `SMARTSTORE.VISITOR` on each response; delete/move responses set no cookie.\n\n## Session destruction\nNo logout or session end was exercised or observed. The visitor cookie lives one year. Emptying the cart does not end the visitor.\n\n## Cookies and flags\n| Cookie | Flags observed | Notes |\n|---|---|---|\n| `SMARTSTORE.VISITOR` | HttpOnly, secure, 1 year | Binds cart and wishlist to the visitor. Re-set on add and update responses. |\n| `ASP.NET_SessionId` | flags not recorded by the units | Set on the first offcanvas or /cart call. |\n\n## CSRF / anti-forgery\nNo anti-forgery token was seen or needed: every curl replay (add, update, delete, move) succeeded with only the visitor cookie. cart-add observed that omitting `X-Requested-With` still works for add. Whether the other mutating endpoints require it was not tested (cart-update and cart-remove replays sent it for some calls). No Origin/Referer checks were tested.\n\n## Object-level access (ownership)\n- A cart or wishlist line can only be changed or removed by its owner (the visitor whose cookie created it).\n- updatecartitem with another visitor's or an unknown id: HTTP 500, nothing changed.\n- deletecartitem and moveitembetweencartandwishlist with another visitor's or an unknown id: HTTP 200 `success:false`, line stays.\n\n## Visitor identity in practice (testability)\n- The three parallel headed browsers appeared to share one guest cart (same IP and User-Agent probably key the guest visitor). Each unit saw lines it had not created, and counters moved on their own.\n- curl jars with a unique User-Agent each behaved deterministically and were fully isolated.\n- Tests should use a fresh request context with its own unique User-Agent. Cause of the sharing is unconfirmed (see open questions).\n\n## Protected paths\nNone of the explored paths require authentication. `GET /checkout` with an empty cart answered `302 Location: /cart` (read-only check by cart-remove; it is an empty-cart redirect, not a login redirect). Checkout, account and login were not explored in this scope.\n\n## Transport requirements related to auth-less POSTs\nPOST endpoints without a body need `Content-Length: 0` (curl `-d \"\"`), otherwise IIS answers 411.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "10955678",
+    "_collection_link": "https://go.postman.co/collection/10955678-9e4f7661-5fbd-46fa-819a-dbbbb2237f02?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "CART",
+      "item": [
+        {
+          "name": "GET /cart - Render the shopping cart page (server-rendered HTML), including the empty-cart state and per-line remove/move links.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Cart page renders\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const html = pm.response.text();",
+                  "",
+                  "pm.test(\"Cart page shows cart area or empty-cart state\", () => {",
+                  "    const hasSomething = html.includes(\"shopping-cart\") ||",
+                  "                         html.includes(\"cart-empty\") ||",
+                  "                         html.includes(\"table.cart\") ||",
+                  "                         html.includes(\"empty-cart\");",
+                  "    pm.expect(hasSomething, \"Cart page should contain recognisable cart markup\").to.be.true;",
+                  "});",
+                  "",
+                  "// Capture cartItemId if there are items (may be empty on very first run)",
+                  "const sciMatch  = html.match(/sciItemId=(\\d+)/);",
+                  "const cartMatch = html.match(/cartItemId=(\\d+)/);",
+                  "const id = (sciMatch && sciMatch[1]) || (cartMatch && cartMatch[1]);",
+                  "if (id) {",
+                  "    pm.collectionVariables.set(\"cartItemId\", id);",
+                  "    console.log(\"cartItemId found on cart page:\", id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cart",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cart"
+              ]
+            },
+            "description": "Render the shopping cart page (server-rendered HTML), including the empty-cart state and per-line remove/move links.\n\n**Endpoint id:** `EP-CART-VIEW`\n**Auth required:** no\n**Verified by replay:** yes\n\n**Success:** 200 (\"Non-empty: lines with data-href=\"/shoppingcart/deletecartitem?cartItemId=<id>\" and \".../moveitembetweencartandwishlist?cartItemId=<id>&cartType=ShoppingCart&isCartPage=True\" plus inputs itemquantity<id>. Empty: text \"Your Shopping Cart is empty!\" (data-empty-text attribute is always present, so do not match on it alone).\")"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /cart/addproduct/{productId}/{cartType} - Add a product to the cart (cartType 1) via XHR form post; repeat adds of the same product accumulate quantity on one cart line.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Add to cart returns 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"Response is JSON\", () =>",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\")",
+                  ");",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"No server error returned\", () =>",
+                  "    pm.expect(json).to.not.have.property(\"error\")",
+                  ");",
+                  "",
+                  "// SmartStore XHR add responds with {redirect:\"/\"} on success — that is the expected shape",
+                  "pm.test(\"Response has expected SmartStore shape\", () => {",
+                  "    const hasKnownKey = json.redirect !== undefined || json.success !== undefined || json.html !== undefined;",
+                  "    pm.expect(hasKnownKey, \"Expected redirect, success, or html key\").to.be.true;",
+                  "});",
+                  "",
+                  "pm.test(\"Session cookie SMARTSTORE.VISITOR is present\", () => {",
+                  "    const setCookie = pm.response.headers.get(\"set-cookie\") || \"\";",
+                  "    pm.expect(setCookie).to.include(\"SMARTSTORE.VISITOR\");",
+                  "});",
+                  "",
+                  "pm.test(\"Add to cart returns success:true\", () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property(\"success\", true);",
+                  "});",
+                  "",
+                  "// Immediately fetch /cart to capture the fresh cartItemId for downstream tests",
+                  "pm.sendRequest({",
+                  "    url: pm.collectionVariables.get(\"baseUrl\") + \"/cart\",",
+                  "    method: \"GET\"",
+                  "}, function (err, cartRes) {",
+                  "    if (err) { console.error(\"Failed to fetch /cart for cartItemId extraction:\", err); return; }",
+                  "    const html = cartRes.text();",
+                  "    // sciItemId is used by updatecartitem; cartItemId is used by deletecartitem and move",
+                  "    const sciMatch  = html.match(/sciItemId=(\\d+)/);",
+                  "    const cartMatch = html.match(/cartItemId=(\\d+)/);",
+                  "    const id = (sciMatch && sciMatch[1]) || (cartMatch && cartMatch[1]);",
+                  "    if (id) {",
+                  "        pm.collectionVariables.set(\"cartItemId\", id);",
+                  "        console.log(\"cartItemId captured after add:\", id);",
+                  "    } else {",
+                  "        console.warn(\"Could not extract cartItemId from cart page after add.\");",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "addtocart_{{productId}}.AddToCart.EnteredQuantity",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cart/addproduct/{{productId}}/{{cartType}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cart",
+                "addproduct",
+                "{{productId}}",
+                "{{cartType}}"
+              ]
+            },
+            "description": "Add a product to the cart (cartType 1) via XHR form post; repeat adds of the same product accumulate quantity on one cart line.\n\n**Endpoint id:** `EP-CART-ADD-PRODUCT`\n**Auth required:** no\n**Changes server state:** yes\n**Verified by replay:** yes\n\n**Success:** 200 (\"JSON {\"success\":true} (plus a $type property)\")\n**Failure:** 200 (\"Invalid quantity: {\"success\":false,\"message\":[\"Quantity should be positive\"]}. Unknown productId 999999: {\"redirect\":\"/\"}. productId 0 or abc: HTTP 404 HTML. GET method: 404. Bodyless POST must still send Content-Length (curl -d '') or IIS returns 411.\")"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /shoppingcart/cartsummary - Return the header counters (cart, wishlist, compare item counts) as JSON; the UI calls it after each add and on every page load.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Returns 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test(\"Response contains all three counter fields\", () => {",
+                  "    pm.expect(json).to.have.property(\"CartItemsCount\").that.is.a(\"number\").and.is.at.least(0);",
+                  "    pm.expect(json).to.have.property(\"WishlistItemsCount\").that.is.a(\"number\").and.is.at.least(0);",
+                  "    pm.expect(json).to.have.property(\"CompareItemsCount\").that.is.a(\"number\").and.is.at.least(0);",
+                  "});",
+                  "",
+                  "pm.test(\"Cart is non-empty after product was added\", () => {",
+                  "    pm.expect(json.CartItemsCount, \"CartItemsCount should be > 0 — product was just added\").to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shoppingcart/cartsummary?cart=True&wishlist=True&compare=True",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shoppingcart",
+                "cartsummary"
+              ],
+              "query": [
+                {
+                  "key": "cart",
+                  "value": "True",
+                  "description": "Include CartItemsCount (the UI sends cart=True after an add)."
+                },
+                {
+                  "key": "wishlist",
+                  "value": "True",
+                  "description": "Include wishlist counter (page load sends cart=True&wishlist=True&compare=True)."
+                },
+                {
+                  "key": "compare",
+                  "value": "True",
+                  "description": "Include compare counter."
+                }
+              ]
+            },
+            "description": "Return the header counters (cart, wishlist, compare item counts) as JSON; the UI calls it after each add and on every page load.\n\n**Endpoint id:** `EP-CART-SUMMARY`\n**Auth required:** no\n**Verified by replay:** yes\n\n**Success:** 200 (\"JSON {\"CartItemsCount\":n,\"WishlistItemsCount\":n,\"CompareItemsCount\":n}. CartItemsCount is the sum of quantities, not the number of lines.\")\n**Failure:** 404 (\"GET returns 404 HTML; POST without Content-Length returns 411.\")"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /shoppingcart/deletecartitem - Remove one line from the cart by its cart item id.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Delete cart item returns 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "const cartItemId = pm.collectionVariables.get(\"cartItemId\");",
+                  "",
+                  "pm.test(\"Response contains a success flag\", () => {",
+                  "    pm.expect(json).to.have.property(\"success\");",
+                  "    pm.expect(json.success).to.be.a(\"boolean\");",
+                  "});",
+                  "",
+                  "if (cartItemId) {",
+                  "    pm.test(\"Delete succeeds for the item we own\", () => {",
+                  "        pm.expect(json.success).to.be.true;",
+                  "    });",
+                  "    if (json.success) {",
+                  "        console.log(\"Item deleted. Re-adding to cart for downstream move/update tests.\");",
+                  "        // Re-add item immediately so move and update tests have something to work with",
+                  "        const productId = pm.collectionVariables.get(\"productId\");",
+                  "        const baseUrl   = pm.collectionVariables.get(\"baseUrl\");",
+                  "        pm.sendRequest({",
+                  "            url: baseUrl + \"/cart/addproduct/\" + productId + \"/1\",",
+                  "            method: \"POST\",",
+                  "            header: {",
+                  "                \"X-Requested-With\": \"XMLHttpRequest\",",
+                  "                \"Content-Type\": \"application/x-www-form-urlencoded\"",
+                  "            },",
+                  "            body: {",
+                  "                mode: \"urlencoded\",",
+                  "                urlencoded: [{ key: \"addtocart_\" + productId + \".AddToCart.EnteredQuantity\", value: \"1\" }]",
+                  "            }",
+                  "        }, function (err) {",
+                  "            if (err) { console.error(\"Re-add failed:\", err); return; }",
+                  "            // Re-fetch cart to capture the new cartItemId",
+                  "            pm.sendRequest({ url: baseUrl + \"/cart\", method: \"GET\" }, function (err2, cartRes) {",
+                  "                if (err2) return;",
+                  "                const html = cartRes.text();",
+                  "                const sciMatch  = html.match(/sciItemId=(\\d+)/);",
+                  "                const cartMatch = html.match(/cartItemId=(\\d+)/);",
+                  "                const id = (sciMatch && sciMatch[1]) || (cartMatch && cartMatch[1]);",
+                  "                if (id) {",
+                  "                    pm.collectionVariables.set(\"cartItemId\", id);",
+                  "                    console.log(\"cartItemId updated after re-add:\", id);",
+                  "                }",
+                  "            });",
+                  "        });",
+                  "    }",
+                  "} else {",
+                  "    console.warn(\"cartItemId not set — cannot assert success vs failure (no known item ID).\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shoppingcart/deletecartitem?cartItemId={{cartItemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shoppingcart",
+                "deletecartitem"
+              ],
+              "query": [
+                {
+                  "key": "cartItemId",
+                  "value": "{{cartItemId}}",
+                  "description": "Cart line id (not product id), taken from the /cart HTML. Ids are global counters, not 1..n."
+                }
+              ]
+            },
+            "description": "Remove one line from the cart by its cart item id.\n\n**Endpoint id:** `EP-CART-DELETE-ITEM`\n**Auth required:** no\n**Changes server state:** yes\n**Verified by replay:** yes\n\n**Success:** 200 (\"JSON {success:true, message:\"The product has been removed.\", cartItemCount:<n>, cartHtml, totalsHtml, displayCheckoutButtons}. After the last line cartItemCount is 0.\")\n**Failure:** 200 (\"Unknown id, already-removed id, or id owned by another visitor: JSON {success:false, displayCheckoutButtons, message:\"An error occurred during the removal of the product.\"}. GET gives 404 HTML. Missing or non-numeric cartItemId gives 502 Bad Gateway (HTML).\")"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /shoppingcart/moveitembetweencartandwishlist - Move a cart line to the wishlist (the line leaves the cart and gets a NEW id on the wishlist).",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Move cart→wishlist returns 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test(\"Response has a success flag\", () => {",
+                  "    pm.expect(json).to.have.property(\"success\");",
+                  "    pm.expect(json.success).to.be.a(\"boolean\");",
+                  "});",
+                  "",
+                  "const cartItemId = pm.collectionVariables.get(\"cartItemId\");",
+                  "if (cartItemId) {",
+                  "    pm.test(\"Move to wishlist reports success\", () => {",
+                  "        pm.expect(json.success, \"Move should succeed for an item we own\").to.be.true;",
+                  "    });",
+                  "}",
+                  "",
+                  "if (json.success) {",
+                  "    // Fetch wishlist to capture the new wishlistItemId (item gets a NEW id on wishlist)",
+                  "    pm.sendRequest({",
+                  "        url: pm.collectionVariables.get(\"baseUrl\") + \"/wishlist\",",
+                  "        method: \"GET\"",
+                  "    }, function (err, wishlistRes) {",
+                  "        if (err) return;",
+                  "        const html = wishlistRes.text();",
+                  "        const cartMatch = html.match(/cartItemId=(\\d+)/);",
+                  "        if (cartMatch) {",
+                  "            pm.collectionVariables.set(\"wishlistItemId\", cartMatch[1]);",
+                  "            console.log(\"wishlistItemId captured after move:\", cartMatch[1]);",
+                  "        }",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shoppingcart/moveitembetweencartandwishlist?cartItemId={{cartItemId}}&cartType=ShoppingCart&isCartPage=True",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shoppingcart",
+                "moveitembetweencartandwishlist"
+              ],
+              "query": [
+                {
+                  "key": "cartItemId",
+                  "value": "{{cartItemId}}",
+                  "description": "Id of the line in the cart."
+                },
+                {
+                  "key": "cartType",
+                  "value": "ShoppingCart",
+                  "description": "Source list of the line: ShoppingCart (move to wishlist)."
+                },
+                {
+                  "key": "isCartPage",
+                  "value": "True",
+                  "description": "UI flag; the UI always sends True. Effect of omitting it not tested."
+                }
+              ]
+            },
+            "description": "Move a cart line to the wishlist (the line leaves the cart and gets a NEW id on the wishlist).\n\n**Endpoint id:** `EP-CART-MOVE-TO-WISHLIST`\n**Auth required:** no\n**Changes server state:** yes\n**Verified by replay:** yes\n\n**Success:** 200 (\"JSON {success:true, wasMoved:true, message:\"The product has been added to your wishlist\", cartHtml, totalsHtml, cartItemCount, displayCheckoutButtons}. Line now appears on /wishlist with a new cartItemId.\")\n**Failure:** 200 (\"Unknown id: JSON {success:false, message:\"Product could not be added to the shopping cart.\"} (wording is misleading). POST with no Content-Length: 411 HTML. GET: 404 HTML. Missing cartItemId: 502 HTML.\")"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /shoppingcart/moveitembetweencartandwishlist - Move a wishlist line back into the cart (the line gets a NEW id in the cart).",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Move wishlist→cart returns 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test(\"Response has a success flag\", () => {",
+                  "    pm.expect(json).to.have.property(\"success\");",
+                  "    pm.expect(json.success).to.be.a(\"boolean\");",
+                  "});",
+                  "",
+                  "const wishlistItemId = pm.collectionVariables.get(\"wishlistItemId\");",
+                  "if (wishlistItemId) {",
+                  "    pm.test(\"Move back to cart reports success\", () => {",
+                  "        pm.expect(json.success, \"Move-back should succeed for an item we own\").to.be.true;",
+                  "    });",
+                  "}",
+                  "",
+                  "if (json.success) {",
+                  "    // The item received a new cartItemId — refresh it from /cart",
+                  "    pm.sendRequest({",
+                  "        url: pm.collectionVariables.get(\"baseUrl\") + \"/cart\",",
+                  "        method: \"GET\"",
+                  "    }, function (err, cartRes) {",
+                  "        if (err) return;",
+                  "        const html = cartRes.text();",
+                  "        const sciMatch  = html.match(/sciItemId=(\\d+)/);",
+                  "        const cartMatch = html.match(/cartItemId=(\\d+)/);",
+                  "        const id = (sciMatch && sciMatch[1]) || (cartMatch && cartMatch[1]);",
+                  "        if (id) {",
+                  "            pm.collectionVariables.set(\"cartItemId\", id);",
+                  "            console.log(\"cartItemId updated after move-back:\", id);",
+                  "        }",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shoppingcart/moveitembetweencartandwishlist?cartItemId={{wishlistItemId}}&cartType=Wishlist&isCartPage=True",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shoppingcart",
+                "moveitembetweencartandwishlist"
+              ],
+              "query": [
+                {
+                  "key": "cartItemId",
+                  "value": "{{wishlistItemId}}",
+                  "description": "Id of the line on the wishlist, from the /wishlist HTML."
+                },
+                {
+                  "key": "cartType",
+                  "value": "Wishlist",
+                  "description": "Source list of the line: Wishlist (move to cart)."
+                },
+                {
+                  "key": "isCartPage",
+                  "value": "True",
+                  "description": "UI flag; the UI sends True."
+                }
+              ]
+            },
+            "description": "Move a wishlist line back into the cart (the line gets a NEW id in the cart).\n\n**Endpoint id:** `EP-CART-MOVE-TO-CART`\n**Auth required:** no\n**Changes server state:** yes\n**Verified by replay:** yes\n\n**Success:** 200 (\"JSON {success:true, wasMoved:true, message:\"The product has been added to your shopping cart\", cartHtml, totalsHtml, cartItemCount, displayCheckoutButtons}.\")\n**Failure:** 200 (\"Unknown id: JSON {success:false, message:\"Product could not be added to the shopping cart.\"}.\")"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /shoppingcart/offcanvasshoppingcart - Return the mini-cart (offcanvas) HTML fragment with the current cart lines, quantities and subtotal.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mini-cart returns 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"Response is HTML\", () =>",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/html\")",
+                  ");",
+                  "",
+                  "pm.test(\"Mini-cart markup contains at least one product entry or empty message\", () => {",
+                  "    const html = pm.response.text();",
+                  "    const hasContent = html.includes(\"offcanvas-cart-item\") ||",
+                  "                       html.includes(\"cart-empty\") ||",
+                  "                       html.includes(\"subtotal\");",
+                  "    pm.expect(hasContent, \"Mini-cart HTML should contain items or an empty-cart message\").to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shoppingcart/offcanvasshoppingcart",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shoppingcart",
+                "offcanvasshoppingcart"
+              ]
+            },
+            "description": "Return the mini-cart (offcanvas) HTML fragment with the current cart lines, quantities and subtotal.\n\n**Endpoint id:** `EP-CART-OFFCANVAS`\n**Auth required:** no\n**Verified by replay:** yes\n\n**Success:** 200 (\"text/html fragment div.offcanvas-cart-body with item rows (input name item.EnteredQuantity, data-sci-id = cart line id, data-update-url /shoppingcart/updatecartitem), subtotal, links to /cart and checkout. In the browser, right after an add it also contained an alert 'The product <name> has been successfully added to your cart'; the curl replay did not show that alert.\")\n**Failure:** 411 (\"POST without Content-Length: IIS 'HTTP Error 411'. GET also returns 200 with the same fragment.\")"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /shoppingcart/updatecartitem - Set the quantity of one cart line (identified by sciItemId) and return the recalculated line and order totals as JSON including rendered cart HTML.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Update cart item returns 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test(\"Response contains recalculated totals\", () => {",
+                  "    // SmartStore returns totals + rendered HTML; at least one monetary value must be present",
+                  "    const body = JSON.stringify(json);",
+                  "    const hasTotal = body.includes(\"Total\") || body.includes(\"SubTotal\") || body.includes(\"subtotal\");",
+                  "    pm.expect(hasTotal, \"Response should include some form of cart total\").to.be.true;",
+                  "});",
+                  "",
+                  "pm.test(\"No error flag returned\", () => {",
+                  "    pm.expect(json).to.not.have.property(\"error\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded; charset=UTF-8"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "newQuantity",
+                  "value": "3",
+                  "type": "text"
+                },
+                {
+                  "key": "isCartPage",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "isWishlist",
+                  "value": "false",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shoppingcart/updatecartitem?sciItemId={{cartItemId}}&isCartPage=True&newQuantity=3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shoppingcart",
+                "updatecartitem"
+              ],
+              "query": [
+                {
+                  "key": "sciItemId",
+                  "value": "{{cartItemId}}",
+                  "description": "ShoppingCartItem id of the line, taken from the id/name itemquantity<id> on GET /cart or the data-href of the quantity input."
+                },
+                {
+                  "key": "isCartPage",
+                  "value": "True",
+                  "description": "Sent by the UI on /cart; selects the cart-page rendering of the response."
+                },
+                {
+                  "key": "newQuantity",
+                  "value": "3",
+                  "description": "Also accepted in the query string (model binding); the UI sends it in the body."
+                }
+              ]
+            },
+            "description": "Set the quantity of one cart line (identified by sciItemId) and return the recalculated line and order totals as JSON including rendered cart HTML.\n\n**Endpoint id:** `EP-CART-UPDATE-ITEM`\n**Auth required:** no\n**Changes server state:** yes\n**Verified by replay:** yes\n\n**Success:** 200 (\"JSON {success:true, SubTotal:'$9.50 excl tax', message:[], cartHtml:'<html of the cart rows>', displayCheckoutButtons:true, newItemPrice:'$1.90 excl tax'}; cartHtml contains the new line total and the order total; GET /cart then shows the new itemquantity<id> value.\")\n**Failure:** 200 (\"Over limit: 200 with JSON {success:false, message:['The maximum quantity allowed for purchase is 10000.'] or ['Your quantity exceeds stock on hand. The maximum quantity that can be added is 8563.'], SubTotal unchanged}; quantity unchanged. Quantity 0 / negative: line is removed but response is 500 {error:true, controller:'shoppingcart', action:'updatecartitem', message:'Object reference not set to an instance of an object.'}. Unknown sciItemId or an item owned by another visitor: 500 same body, nothing changed. Non-numeric/empty/2.5/missing newQuantity: 502 HTML 'Bad Gateway' (awselb/2.0). GET: 404.\")"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /transocean-chronograph - Product detail page that hosts the add-to-cart form (form id pd-form, quantity field addtocart_{productId}.EnteredQuantity).",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Product page loads\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"Add-to-cart form is present\", () => {",
+                  "    pm.expect(pm.response.text()).to.include('id=\"pd-form\"');",
+                  "});",
+                  "",
+                  "pm.test(\"Product has a listed price\", () => {",
+                  "    pm.expect(pm.response.text()).to.match(/\\$[\\d,]+\\.\\d{2}/);",
+                  "});",
+                  "",
+                  "// Dynamically extract real productId and lock cartType for the shopping cart",
+                  "const html = pm.response.text();",
+                  "const m = html.match(/data-href='\\/cart\\/addproduct\\/(\\d+)\\/1'/);",
+                  "if (m) {",
+                  "    pm.collectionVariables.set(\"productId\", m[1]);",
+                  "    console.log(\"productId extracted from product page:\", m[1]);",
+                  "}",
+                  "pm.collectionVariables.set(\"cartType\", \"1\");"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transocean-chronograph",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transocean-chronograph"
+              ]
+            },
+            "description": "Product detail page that hosts the add-to-cart form (form id pd-form, quantity field addtocart_{productId}.EnteredQuantity).\n\n**Endpoint id:** `EP-CART-PRODUCT-PAGE`\n**Auth required:** no\n**Verified by replay:** yes\n\n**Success:** 200 (\"HTML title 'Shop. TRANSOCEAN CHRONOGRAPH'; Add to cart link is JS-driven (href '#')\")\n**Failure:** 404 (\"not exercised for unknown slugs\")"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /wishlist - Render the wishlist page (server-rendered HTML) so wishlist line ids can be read and emptiness checked.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Wishlist page renders\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const html = pm.response.text();",
+                  "",
+                  "pm.test(\"Wishlist page shows list or empty state\", () => {",
+                  "    const hasContent = html.includes(\"wishlist\") || html.includes(\"wish-list\") || html.includes(\"empty\");",
+                  "    pm.expect(hasContent, \"Wishlist page should contain wishlist markup\").to.be.true;",
+                  "});",
+                  "",
+                  "// Capture wishlistItemId if present",
+                  "const cartMatch = html.match(/cartItemId=(\\d+)/);",
+                  "if (cartMatch) {",
+                  "    pm.collectionVariables.set(\"wishlistItemId\", cartMatch[1]);",
+                  "    console.log(\"wishlistItemId found on wishlist page:\", cartMatch[1]);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wishlist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wishlist"
+              ]
+            },
+            "description": "Render the wishlist page (server-rendered HTML) so wishlist line ids can be read and emptiness checked.\n\n**Endpoint id:** `EP-CART-WISHLIST-VIEW`\n**Auth required:** no\n**Verified by replay:** yes\n\n**Success:** 200 (\"Lines carry data-href=\".../moveitembetweencartandwishlist?cartItemId=<id>&cartType=Wishlist&isCartPage=True\". Empty: \"The wishlist is empty!\" (data-empty-text also always present).\")"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Ensure runtime variables have safe defaults if not yet populated",
+          "if (!pm.collectionVariables.get(\"productId\") || pm.collectionVariables.get(\"productId\") === \"\") {",
+          "    pm.collectionVariables.set(\"productId\", \"1\");",
+          "}",
+          "if (!pm.collectionVariables.get(\"cartType\") || pm.collectionVariables.get(\"cartType\") === \"\") {",
+          "    pm.collectionVariables.set(\"cartType\", \"1\");",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://bearstore-testsite.smartbear.com"
+    },
+    {
+      "key": "productId",
+      "value": ""
+    },
+    {
+      "key": "cartType",
+      "value": ""
+    },
+    {
+      "key": "cartItemId",
+      "value": ""
+    },
+    {
+      "key": "wishlistItemId",
+      "value": ""
+    }
+  ]
+}

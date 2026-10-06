@@ -1,0 +1,524 @@
+{
+  "source": "qa/01-discovery/endpoints.json",
+  "match": "^EP-CART-",
+  "endpoints": [
+    {
+      "id": "EP-CART-ADD-CART",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "Add product to cart (XHR)",
+      "method": "POST",
+      "path": "/cart/addproduct/{productId}/1",
+      "query": [],
+      "contentType": "application/x-www-form-urlencoded; charset=UTF-8",
+      "bodyFields": [
+        {
+          "name": "addtocart_{productId}.EnteredQuantity (int 1..10000; optional, field name is not actually checked, missing/unknown field adds 1)"
+        }
+      ],
+      "authRequired": false,
+      "stateChanging": true,
+      "verified": true,
+      "success": {
+        "status": 200,
+        "location": null,
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "JSON {\"success\":true} ($type AnonymousType28). Quantity is MERGED into an existing line for the same product."
+      },
+      "failure": {
+        "status": 200,
+        "bodySignal": "JSON {\"success\":false,\"message\":[\"Quantity should be positive\"]} for 0, negative, non-integer, abc, >int32; {\"message\":[\"The maximum quantity allowed for purchase is 10000.\"]} when requested or existing+requested > 10000. Unknown productId -> 200 {\"redirect\":\"/\"}. Non-numeric productId -> 404 HTML. GET -> 404 IIS page. Unknown shoppingCartType 0/-1 -> 404 HTML; 9 -> 200 success:true but nothing added; 99999999999 -> 502 Bad Gateway"
+      }
+    },
+    {
+      "id": "EP-CART-ADD-WISHLIST",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "Add product to wishlist (XHR)",
+      "method": "POST",
+      "path": "/cart/addproduct/{productId}/2",
+      "query": [],
+      "contentType": "application/x-www-form-urlencoded; charset=UTF-8",
+      "bodyFields": [
+        {
+          "name": "addtocart_{productId}.EnteredQuantity (int 1..10000)"
+        }
+      ],
+      "authRequired": false,
+      "stateChanging": true,
+      "verified": true,
+      "success": {
+        "status": 200,
+        "location": null,
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "JSON {\"success\":true}; merged into existing wishlist line. WishlistItemsCount in cartsummary = sum of quantities"
+      },
+      "failure": {
+        "status": 200,
+        "bodySignal": "Same JSON errors as add-to-cart (\"Quantity should be positive\", \"The maximum quantity allowed for purchase is 10000.\")"
+      }
+    },
+    {
+      "id": "EP-CART-OFFCANVAS-CART",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "Mini-cart HTML fragment",
+      "method": "POST",
+      "path": "/shoppingcart/offcanvasshoppingcart",
+      "query": [],
+      "contentType": "none (empty body)",
+      "bodyFields": [],
+      "authRequired": false,
+      "stateChanging": false,
+      "verified": true,
+      "success": {
+        "status": 200,
+        "location": null,
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "HTML fragment: success alert \"The product <strong>NAME</strong> has been successfully added to your cart\", lines with data-sci-id, data-update-url=/shoppingcart/updatecartitem, remove link /shoppingcart/deletecartitem?cartItemId=ID, subtotal, Go to cart, Checkout (/login?checkoutAsGuest=True&returnUrl=%2Fcart for anonymous)"
+      },
+      "failure": {
+        "status": 0,
+        "bodySignal": "none observed"
+      }
+    },
+    {
+      "id": "EP-CART-OFFCANVAS-WISHLIST",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "Mini-wishlist HTML fragment",
+      "method": "POST",
+      "path": "/shoppingcart/offcanvaswishlist",
+      "query": [],
+      "contentType": "none",
+      "bodyFields": [],
+      "authRequired": false,
+      "stateChanging": false,
+      "verified": true,
+      "success": {
+        "status": 200,
+        "location": null,
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "HTML fragment with wishlist lines, links to /wishlist"
+      },
+      "failure": {
+        "status": 0,
+        "bodySignal": "none observed"
+      }
+    },
+    {
+      "id": "EP-CART-SUMMARY",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "Header counters JSON for cart, wishlist, compare (fired on every page)",
+      "method": "POST",
+      "path": "/shoppingcart/cartsummary",
+      "query": [
+        {
+          "name": "cart",
+          "example": "True"
+        },
+        {
+          "name": "wishlist",
+          "example": "True"
+        },
+        {
+          "name": "compare",
+          "example": "True"
+        }
+      ],
+      "contentType": "none (empty body; curl needs -d '' else 411)",
+      "bodyFields": [
+        {
+          "name": "query flags cart, wishlist, compare (any combination)"
+        }
+      ],
+      "authRequired": false,
+      "stateChanging": false,
+      "verified": true,
+      "success": {
+        "status": 200,
+        "location": null,
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "JSON {\"CartItemsCount\":n,\"WishlistItemsCount\":n,\"CompareItemsCount\":n}; counts are SUM OF QUANTITIES for cart/wishlist, number of products for compare. GET returns 404"
+      },
+      "failure": {
+        "status": 411,
+        "bodySignal": "POST without Content-Length -> 411"
+      }
+    },
+    {
+      "id": "EP-CART-VIEW",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "Cart page with totals",
+      "method": "GET",
+      "path": "/cart",
+      "query": [],
+      "contentType": "-",
+      "bodyFields": [],
+      "authRequired": false,
+      "stateChanging": false,
+      "verified": true,
+      "success": {
+        "status": 200,
+        "location": null,
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "HTML. Empty: \"Your Shopping Cart is empty!\". Lines have input name=itemquantity{sciId} (form field) and data-href=/shoppingcart/updatecartitem?sciItemId={id}&isCartPage=True; totals table .cart-summary (Subtotal, Shipping, Tax, Total)"
+      },
+      "failure": {
+        "status": 0,
+        "bodySignal": "none"
+      }
+    },
+    {
+      "id": "EP-CART-UPDATE",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "Update cart or wishlist line quantity",
+      "method": "POST",
+      "path": "/shoppingcart/updatecartitem",
+      "query": [
+        {
+          "name": "sciItemId",
+          "example": "{sciId}"
+        },
+        {
+          "name": "isCartPage",
+          "example": "True"
+        }
+      ],
+      "contentType": "application/x-www-form-urlencoded; charset=UTF-8",
+      "bodyFields": [
+        {
+          "name": "newQuantity"
+        },
+        {
+          "name": "isCartPage=true"
+        },
+        {
+          "name": "isWishlist=true|false"
+        }
+      ],
+      "authRequired": false,
+      "stateChanging": true,
+      "verified": true,
+      "success": {
+        "status": 200,
+        "location": null,
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "JSON {success:true, SubTotal:\"$50.85 excl tax\", message:[], cartHtml, totalsHtml, displayCheckoutButtons:true, newItemPrice:\"$16.95 excl tax\"}. For isWishlist=true, SubTotal/totalsHtml reflect the CART, not the wishlist (totalsHtml empty)"
+      },
+      "failure": {
+        "status": 200,
+        "bodySignal": "newQuantity>10000 -> 200 {\"success\":false,\"message\":[\"The maximum quantity allowed for purchase is 10000.\"]} (line unchanged). newQuantity<=0 (0, -1, -3) DELETES the line and then returns 500 JSON {\"error\":true,\"controller\":\"shoppingcart\",\"action\":\"updatecartitem\",\"message\":\"Object reference not set to an instance of an object.\"}. Unknown/foreign/deleted sciItemId -> same 500 JSON. newQuantity=abc, 1.5, empty or >int32 -> 502 Bad Gateway. 10000 accepted: subtotal $169,500.00"
+      }
+    },
+    {
+      "id": "EP-CART-DELETE",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "Remove cart or wishlist line",
+      "method": "POST",
+      "path": "/shoppingcart/deletecartitem",
+      "query": [
+        {
+          "name": "cartItemId",
+          "example": "{sciId}["
+        },
+        {
+          "name": "wishlistItem",
+          "example": "True]"
+        }
+      ],
+      "contentType": "none (empty body)",
+      "bodyFields": [
+        {
+          "name": "query cartItemId, wishlistItem"
+        }
+      ],
+      "authRequired": false,
+      "stateChanging": true,
+      "verified": true,
+      "success": {
+        "status": 200,
+        "location": null,
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "JSON {cartItemCount:n, success:true, message:\"The product has been removed.\", cartHtml, totalsHtml, displayCheckoutButtons}"
+      },
+      "failure": {
+        "status": 200,
+        "bodySignal": "unknown/already deleted/foreign id -> 200 {\"success\":false,\"message\":\"An error occurred during the removal of the product.\"}; non-numeric or missing id -> 502; GET -> 404. Foreign (other visitor) item NOT deletable (no IDOR)"
+      }
+    },
+    {
+      "id": "EP-CART-MOVE",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "Move line between cart and wishlist",
+      "method": "POST",
+      "path": "/shoppingcart/moveitembetweencartandwishlist",
+      "query": [
+        {
+          "name": "cartItemId",
+          "example": "{id}"
+        },
+        {
+          "name": "cartType",
+          "example": "ShoppingCart|Wishlist["
+        },
+        {
+          "name": "isCartPage",
+          "example": "True]"
+        }
+      ],
+      "contentType": "none (empty body)",
+      "bodyFields": [
+        {
+          "name": "query cartItemId, cartType"
+        }
+      ],
+      "authRequired": false,
+      "stateChanging": true,
+      "verified": true,
+      "success": {
+        "status": 200,
+        "location": null,
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "JSON {success:true, wasMoved:true, message:\"The product has been added to your wishlist\" | \"...to your shopping cart\", cartHtml, totalsHtml, cartItemCount, displayCheckoutButtons}. Quantity merges into destination line"
+      },
+      "failure": {
+        "status": 0,
+        "bodySignal": "not probed"
+      }
+    },
+    {
+      "id": "EP-CART-COUPON",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "Apply discount coupon (form POST /cart)",
+      "method": "POST",
+      "path": "/cart",
+      "query": [],
+      "contentType": "multipart/form-data",
+      "bodyFields": [
+        {
+          "name": "itemquantity{sciId}"
+        },
+        {
+          "name": "discountcouponcode"
+        },
+        {
+          "name": "applydiscountcouponcode=applydiscountcouponcode"
+        },
+        {
+          "name": "(browser also sends giftcardcouponcode, CountryId, StateProvinceId, ZipPostalCode); urlencoded body works too"
+        }
+      ],
+      "authRequired": false,
+      "stateChanging": true,
+      "verified": true,
+      "success": {
+        "status": 0,
+        "location": null,
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "no valid coupon available; success path not observed"
+      },
+      "failure": {
+        "status": 200,
+        "bodySignal": "HTML re-render with alert-danger \"The coupon code you entered couldn't be applied to your order\" (invalid and empty codes)"
+      }
+    },
+    {
+      "id": "EP-CART-GIFTCARD",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "Apply gift card code (form POST /cart)",
+      "method": "POST",
+      "path": "/cart",
+      "query": [],
+      "contentType": "multipart/form-data",
+      "bodyFields": [
+        {
+          "name": "itemquantity{sciId}"
+        },
+        {
+          "name": "giftcardcouponcode"
+        },
+        {
+          "name": "applygiftcardcouponcode=applygiftcardcouponcode"
+        }
+      ],
+      "authRequired": false,
+      "stateChanging": true,
+      "verified": true,
+      "success": {
+        "status": 0,
+        "location": null,
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "no valid gift card code available; success path not observed"
+      },
+      "failure": {
+        "status": 200,
+        "bodySignal": "HTML re-render with alert-danger \"The coupon code you entered couldn't be applied to your order\" inside #cart-action-giftcard-body (same text as coupon) for invalid and empty codes"
+      }
+    },
+    {
+      "id": "EP-CART-ESTIMATE-SHIPPING",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "Estimate shipping (form POST /cart)",
+      "method": "POST",
+      "path": "/cart",
+      "query": [],
+      "contentType": "multipart/form-data",
+      "bodyFields": [
+        {
+          "name": "itemquantity{sciId}"
+        },
+        {
+          "name": "CountryId (1=US, 2=Canada, 3=Germany default, 4=Austria, 5=Switzerland)"
+        },
+        {
+          "name": "StateProvinceId"
+        },
+        {
+          "name": "ZipPostalCode"
+        },
+        {
+          "name": "estimateshipping=Estimate shipping"
+        }
+      ],
+      "authRequired": false,
+      "stateChanging": false,
+      "verified": true,
+      "success": {
+        "status": 200,
+        "location": null,
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "HTML with alert-success listing shipping options: In-Store Pickup ($0.00), By Ground ($0.00)"
+      },
+      "failure": {
+        "status": 200,
+        "bodySignal": "Unknown CountryId 999999 still returns same options (no validation); empty zip accepted"
+      }
+    },
+    {
+      "id": "EP-CART-STATES",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "States by country JSON",
+      "method": "GET",
+      "path": "/country/getstatesbycountryid",
+      "query": [
+        {
+          "name": "countryId",
+          "example": "{id}"
+        },
+        {
+          "name": "addEmptyStateIfRequired",
+          "example": "true"
+        }
+      ],
+      "contentType": "-",
+      "bodyFields": [
+        {
+          "name": "countryId"
+        },
+        {
+          "name": "addEmptyStateIfRequired"
+        }
+      ],
+      "authRequired": false,
+      "stateChanging": false,
+      "verified": true,
+      "success": {
+        "status": 200,
+        "location": null,
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "JSON array of {id,name}, e.g. countryId=1 -> \"AA (Armed Forces Americas)\" ..."
+      },
+      "failure": {
+        "status": 0,
+        "bodySignal": "not probed"
+      }
+    },
+    {
+      "id": "EP-CART-CONTINUE",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "Continue shopping (form POST /cart)",
+      "method": "POST",
+      "path": "/cart",
+      "query": [],
+      "contentType": "multipart/form-data",
+      "bodyFields": [
+        {
+          "name": "itemquantity{sciId}"
+        },
+        {
+          "name": "continueshopping=continueshopping"
+        }
+      ],
+      "authRequired": false,
+      "stateChanging": false,
+      "verified": true,
+      "success": {
+        "status": 302,
+        "location": "/",
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "redirect home"
+      },
+      "failure": {
+        "status": 0,
+        "bodySignal": "-"
+      }
+    },
+    {
+      "id": "EP-CART-STARTCHECKOUT",
+      "area": "CART-COMPARE-WISHLIST",
+      "purpose": "Start checkout (form POST /cart)",
+      "method": "POST",
+      "path": "/cart",
+      "query": [],
+      "contentType": "multipart/form-data",
+      "bodyFields": [
+        {
+          "name": "itemquantity{sciId}"
+        },
+        {
+          "name": "startcheckout=startcheckout"
+        }
+      ],
+      "authRequired": false,
+      "stateChanging": false,
+      "verified": true,
+      "success": {
+        "status": 302,
+        "location": "anonymous: /login?checkoutAsGuest=True&returnUrl=%2Fcart ; logged in: /checkout (then 302 /checkout/billingaddress)",
+        "setCookies": [
+          "SMARTSTORE.VISITOR (refreshed on every response)"
+        ],
+        "bodySignal": "redirect"
+      },
+      "failure": {
+        "status": 0,
+        "bodySignal": "-"
+      }
+    }
+  ]
+}

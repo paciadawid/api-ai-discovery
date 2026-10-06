@@ -1,0 +1,140 @@
+[
+  {
+    "id": "EP-CONTENT-ABOUTUS", "method": "GET", "path": "/aboutus", "contentType": null, "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR (HttpOnly; Secure; SameSite=Lax; 1y, re-sent on every response)"], "bodySignal": "text/html; charset=utf-8; <title>Shop. About Us</title>; cache-control: private; no <h1>"},
+    "failure": {"status": 301, "bodySignal": "/AboutUs and /aboutus/ 301 to http://.../aboutus (note: http scheme, not https); http:// 301 to https://"},
+    "verified": true, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-SHIPPINGINFO", "method": "GET", "path": "/shippinginfo", "contentType": null, "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR"], "bodySignal": "title 'Shop. Shipping & Returns'"},
+    "failure": {"status": 404, "bodySignal": "n/a"},
+    "verified": true, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-PAYMENTINFO", "method": "GET", "path": "/paymentinfo", "contentType": null, "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR"], "bodySignal": "title 'Shop. Payment info'"},
+    "failure": {"status": 404, "bodySignal": "n/a"},
+    "verified": true, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-PRIVACYINFO", "method": "GET", "path": "/privacyinfo", "contentType": null, "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR"], "bodySignal": "title 'Shop. Privacy policy'"},
+    "failure": {"status": 404, "bodySignal": "n/a"},
+    "verified": true, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-CONDITIONSOFUSE", "method": "GET", "path": "/conditionsofuse", "contentType": null, "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR"], "bodySignal": "title 'Shop. Conditions of use'"},
+    "failure": {"status": 404, "bodySignal": "n/a"},
+    "verified": true, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-DISCLAIMER", "method": "GET", "path": "/disclaimer", "contentType": null, "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR"], "bodySignal": "title 'Shop. Disclaimer'"},
+    "failure": {"status": 404, "bodySignal": "n/a"},
+    "verified": true, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-BLOG-PAGE", "method": "GET", "path": "/blog", "contentType": null, "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": null, "location": null, "setCookies": [], "bodySignal": "never succeeds: blog/news pages are not available"},
+    "failure": {"status": 404, "bodySignal": "html page with <title>Shop. 404</title> and <h1>404</h1>. The footer link href=\"/blog\" on every page leads here (broken link). /news, /newslist, /blog/rss/1 also 404."},
+    "verified": true, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-CONTACT-FORM", "method": "GET", "path": "/contactus", "contentType": null, "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR"], "bodySignal": "<h1>Contact Us</h1>; form action=/contactus method=post with FullName (optional), Email (type=email, required), Enquiry (textarea, required), submit button name=send-email; no captcha, no __RequestVerificationToken, no maxlength attributes"},
+    "failure": {"status": 404, "bodySignal": "n/a"},
+    "verified": true, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-CONTACT-SEND", "method": "POST", "path": "/contactus", "contentType": "application/x-www-form-urlencoded",
+    "bodyFields": ["FullName (optional)", "Email (required, email format)", "Enquiry (required, whitespace-only rejected)", "send-email (not required; the browser submit button sends it, curl without it also works)"],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR"], "bodySignal": "HTML page containing <div class=\"alert alert-success\">Your enquiry has been successfully sent to the store owner.</div>; form is no longer rendered (no 'contact-form' in body). NOT a redirect (no PRG)."},
+    "failure": {"status": 200, "bodySignal": "HTML form re-rendered with <div class=\"validation-summary-errors\"> list items plus field-validation-error spans: \"'Your email' should not be empty.\", \"'Your email' is not a valid email address.\", \"'Enquiry' should not be empty.\". Values containing '<' or '>' in any field give 500 Internal Server Error (ASP.NET 'A potentially dangerous Request.Form value was detected'). No antiforgery token needed. No length limit observed (5000-char Enquiry and 300-char FullName accepted)."},
+    "verified": true, "stateChanging": true
+  },
+  {
+    "id": "EP-CONTENT-NEWSLETTER-SUBSCRIBE", "method": "POST", "path": "/newsletter/subscribe", "contentType": "application/x-www-form-urlencoded (sent by footer JS via jQuery $.ajax; no X-Requested-With needed)",
+    "bodyFields": ["subscribe ('true' = subscribe, 'false' = unsubscribe; REQUIRED, omitting it gives 502)", "email", "GdprConsent (true/false/empty; ignored in observed behaviour)"],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR"], "bodySignal": "application/json: {\"$type\":\"<>f__AnonymousType24`2[...]\",\"Success\":true,\"Result\":\"Thank you for signing up! A verification email has been sent. We appreciate your interest.\"} for subscribe=true; Result \"A verification email has been sent. Thank you!\" for subscribe=false. Double opt-in: both need an emailed confirmation link, so nothing becomes active from the POST alone. Same response for duplicate subscribe, repeated unsubscribe, and unsubscribe of an address that never subscribed (no account enumeration)."},
+    "failure": {"status": 200, "bodySignal": "JSON {\"Success\":false,\"Result\":\"Enter valid email\"} for empty or malformed email. Missing 'subscribe' field or empty body: 502 Bad Gateway from awselb/2.0 (text/html, backend crashes). Email containing '<script>': 500 (request validation). GET: 404 (POST only). JSON content type body (application/json) works and behaves as unsubscribe/subscribe via model binding: observed 200 Success true for {subscribe:'false'}. POST with no body and no Content-Length: 411."},
+    "verified": true, "stateChanging": true
+  },
+  {
+    "id": "EP-CONTENT-NEWSLETTER-ACTIVATION", "method": "GET", "path": "/newsletter/subscriptionactivation", "contentType": null,
+    "bodyFields": ["token (guid) and active (bool) from the emailed link; exact route shape unconfirmed"],
+    "authRequired": false,
+    "success": {"status": null, "location": null, "setCookies": [], "bodySignal": "not observed (needs the emailed token)"},
+    "failure": {"status": 502, "bodySignal": "bare GET (no token): 502 Bad Gateway from awselb. /newsletter/subscriptionactivation/{guid}/true and ?token=guid&active=true: 404 (Shop. 404 page). /newsletter/subscriptionactivation/{guid}?active=true: 502."},
+    "verified": false, "stateChanging": true
+  },
+  {
+    "id": "EP-CONTENT-PWRECOVERY-FORM", "method": "GET", "path": "/customer/passwordrecovery", "contentType": null, "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR"], "bodySignal": "<h1>Reset password</h1>; form action=/customer/passwordrecovery method=post; field Email (type=email, required); submit button name=send-email; no antiforgery token. Linked from the login page. The scout's /passwordrecovery is 404."},
+    "failure": {"status": 404, "bodySignal": "/passwordrecovery 404 (robots.txt lists /PasswordRecovery but the real route is under /customer)"},
+    "verified": true, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-PWRECOVERY-SEND", "method": "POST", "path": "/customer/passwordrecovery", "contentType": "application/x-www-form-urlencoded",
+    "bodyFields": ["Email (required, email format)", "send-email (REQUIRED marker: without it the POST just re-renders the empty form with 200 and no message)"],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR"], "bodySignal": "not observed for an existing account (would email a real user; only nonexistent test addresses were used)"},
+    "failure": {"status": 200, "bodySignal": "unknown email: <div class=\"alert alert-danger\">Email not found.</div> (account enumeration possible). Empty: field-validation-error \"'Your email address' should not be empty.\". Malformed: \"'Your email address' is not a valid email address.\"."},
+    "verified": true, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-PWRECOVERY-CONFIRM", "method": "GET", "path": "/customer/passwordrecoveryconfirm", "contentType": null,
+    "bodyFields": ["token", "email (query; from the emailed link)"],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR"], "bodySignal": "bare GET renders a form with 'New password' and 'Confirm password'. With a bogus token and email: 200 and no visible error message in the GET. POST behaviour not probed."},
+    "failure": {"status": null, "bodySignal": "not determined"},
+    "verified": false, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-RSS-NEWS", "method": "GET", "path": "/news/rss/1", "contentType": null, "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR"], "bodySignal": "application/rss+xml; charset=utf-8; RSS 2.0 channel 'SmartStore - News' with zero items. /news/rss (no id) also 200. The /news HTML page is 404."},
+    "failure": {"status": 404, "bodySignal": "/rss, /rss/news are 404"},
+    "verified": true, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-RSS-BLOG", "method": "GET", "path": "/blog/rss", "contentType": null, "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR"], "bodySignal": "application/rss+xml; channel 'SmartStore - Blog' (channel link is /blog, which 404s). /blog/rss/1 is 404."},
+    "failure": {"status": 404, "bodySignal": "/blog/rss/1"},
+    "verified": true, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-RSS-NEWPRODUCTS", "method": "GET", "path": "/newproducts/rss", "contentType": null, "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": ["SMARTSTORE.VISITOR"], "bodySignal": "application/rss+xml; RSS 2.0 'SmartStore - Recently added products', about 69 KB with item/guid entries linking to product slugs"},
+    "failure": {"status": 404, "bodySignal": "n/a"},
+    "verified": true, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-SITEMAP-XML", "method": "GET", "path": "/sitemap.xml", "contentType": null, "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": [], "bodySignal": "text/xml urlset of category URLs with lastmod; /sitemap (no extension) is 301 to /"},
+    "failure": {"status": 404, "bodySignal": "n/a"},
+    "verified": true, "stateChanging": false
+  },
+  {
+    "id": "EP-CONTENT-ROBOTS", "method": "GET", "path": "/robots.txt", "contentType": null, "bodyFields": [],
+    "authRequired": false,
+    "success": {"status": 200, "location": null, "setCookies": [], "bodySignal": "text/plain; User-agent: * ; Sitemap line; Disallow list that includes /Newsletter/Subscribe, /PasswordRecovery, /blog/tag/, /blog/month/ (hint that a blog module exists but is not enabled)"},
+    "failure": {"status": 404, "bodySignal": "n/a"},
+    "verified": true, "stateChanging": false
+  }
+]

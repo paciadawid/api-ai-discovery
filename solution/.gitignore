@@ -1,0 +1,20 @@
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Playwright agent tooling
+.playwright-cli/
+.playwright-mcp/
+
+# Generated exports
+exports/
+
+# Secrets
+.env
+.env.*
+!.env.example
