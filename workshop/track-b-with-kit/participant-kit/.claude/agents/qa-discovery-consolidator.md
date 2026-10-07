@@ -26,5 +26,8 @@ Rules:
 - Merge only what the per-area files say; do not add new claims.
 - Do not touch `tests/`. Finish with the 5 most important lines of SUMMARY.md.
 
+## Visualize (mandatory, last step)
+After `SUMMARY.md` and the other consolidated files are written, run from the kit root, as your LAST action: `node scripts/visualize.mjs discovery --root <QA root>` (default root `qa/`). It renders `<root>/visuals/02-discovery.html` from the files you just wrote. Put the printed page path in your final message. If it fails, say so in one line and continue: never block the stage on it and never hand-write the HTML.
+
 ## QA root
 Every `qa/...` path in this file is relative to the QA root the orchestrator gives you. Default root: `qa/`. A focused run (the workshop) passes a root such as `qa/workshop/cart/`; then read and write `<root>/01-discovery/...`, `<root>/02-use-cases.md`, `<root>/03-selected.md`, `<root>/04-coverage.md` and `<root>/05-run-report.md` instead, and never touch the default root. If the orchestrator passes a scope brief instead of `areas.md` / `SUMMARY.md`, treat the brief as that input.

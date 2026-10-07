@@ -3,14 +3,23 @@ paths:
   - "tests/**/*.ts"
 ---
 
-# Test style (minimal structure)
+# Test style: behaviours, not actions
 
-- One spec file per slice: `tests/<slug>.api.spec.ts`. Small helpers (a shopper class over `APIRequestContext`, a price parser) sit at the top of the same file. If the file grows past about 250 lines, say so in the report instead of inventing layers.
-- `test.describe` names the situation ("Cart manipulation (anonymous shopper)").
-- Titles start with the use-case ID and state a behaviour and its outcome: `UC-CART-02: adding the same product again grows the existing line instead of adding a second one`. Not `POST addproduct twice`.
-- Arrange / Act / Assert, separated by blank lines. One behaviour per test.
-- Named constants for product ids, prices and messages (`GOLFBALL = { id: 8, unitCents: 190 }`), no magic numbers in assertions.
-- Disable redirect following in the request context when the redirect itself is the behaviour.
-- No `waitForTimeout`, no `test.only`, no `test.skip`/`fixme`, no weakened assertion to get green.
-- Known application defects: keep asserting the observed behaviour, tag `@known-issue`, comment why.
-- SmartStore quirks to respect: a body-less POST needs `data: ''` (else HTTP 411); send `X-Requested-With: XMLHttpRequest`; business failures are HTTP 200 + `success:false`; cart line ids change when a line moves between cart and wishlist; counters JSON has a `$type` field, so use `toMatchObject`.
+A test reads as a short story a product owner could confirm. Anything mechanical is hidden in an actor, a matcher or a parser (see `framework-architecture.md`). `npm run lint:framework` enforces the checkable parts.
+
+1. **Title states the behaviour and the outcome**, prefixed by the use-case ID:
+   `UC-<AREA>-<NN>: repeating the same request twice updates the existing record instead of creating a second one`.
+   Not `UC-<AREA>-<NN>: POST twice` and not `test create`. The lint requires `UC-<AREA>-<NN>: ` followed by text.
+2. **`test.describe` names the situation or capability** ("A user with one saved item"), not the endpoint or the file.
+3. **Arrange / Act / Assert, separated by blank lines.** Arrange = the actor's `has...` Given steps (in `test.beforeEach` when several tests share them). Act = one actor verb, then read the outcome through the actor's observation methods. Assert = `expect(...)` on the outcome.
+4. **One behaviour per test.** If the title needs "and" twice, split it. Teardown is never written in a spec: no `try/finally`, no `afterEach` cleanup; the fixture cleans up.
+5. **No raw HTTP, no parsing, no regex over HTML, no JSON plumbing, no `process.env`** in a spec. If you need one, add an actor method, a parser in `src/domain/` or a matcher first.
+6. **Domain vocabulary and no magic values.** Ids, prices, limits and server messages come from `@/domain/*` constants, never as literals in a spec. Expected values are computed from the input, not copied from a response.
+7. **Matchers over raw status checks**: assert the business outcome through a matcher, not `expect(reply.status).toBe(200)` alone. Add a message argument that names the business fact (`expect(state, 'the item is gone despite the error')`). The same assertion in two specs becomes a matcher in `src/matchers/index.ts`.
+8. **Parametrise with data tables**, not copy-paste: an array of rows and a `for` loop generating one titled test per row (each title still starts with its UC id).
+9. **Known application defects** keep the test asserting the OBSERVED behaviour (exact status and message) and carry `{ tag: '@known-issue', annotation: { type: 'issue', description: '<id>: ...' } }`. They live in their own spec file and Playwright project, outside the pass/fail gate. Never `test.skip`, `fixme` or a weakened assertion to get green.
+10. **Independence**: no ordering, no shared mutable state, no fixed sleeps, no `.only`. Every test gets its own actor from a fixture.
+11. **Short specs, kebab-case files**: `tests/<area>/<capability>.api.spec.ts`. One spec per capability, NOT one file per slice. If a file passes about 150 lines, split it by capability.
+12. Import only `{ test, expect } from '@/fixtures'` plus `@/domain/*` constants. Never `@playwright/test`. Nothing but `*.api.spec.ts` files under `tests/`.
+
+Quirks of the target (required headers, odd status codes, encoding) live in `src/api` and `src/domain`, never in specs.

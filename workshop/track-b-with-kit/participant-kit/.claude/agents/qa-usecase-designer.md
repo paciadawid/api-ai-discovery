@@ -1,7 +1,7 @@
 ---
 name: qa-usecase-designer
 description: Stage 2 of the API QA cycle. Turns the endpoint catalogue in qa/01-discovery into API-level use cases with IDs, requests, expected responses and endpoint references. Does not open a browser.
-tools: Glob, Grep, Read, Write
+tools: Glob, Grep, Read, Write, Bash
 model: sonnet
 color: yellow
 ---
@@ -36,6 +36,9 @@ Guidance:
 - If a scenario needs facts missing from discovery, do not guess; list it under "Needs more discovery".
 - Do not write test code. Do not edit anything under `tests/`.
 - Finish with counts per area and type.
+
+## Visualize (mandatory, last step)
+After `<root>/02-use-cases.md` is written, run from the kit root, as your LAST action: `node scripts/visualize.mjs usecases --root <QA root>` (default root `qa/`). It renders `<root>/visuals/03-usecases.html` from the files you just wrote. Put the printed page path in your final message. If it fails, say so in one line and continue: never block the stage on it and never hand-write the HTML.
 
 ## QA root
 Every `qa/...` path in this file is relative to the QA root the orchestrator gives you. Default root: `qa/`. A focused run (the workshop) passes a root such as `qa/workshop/cart/`; then read and write `<root>/01-discovery/...`, `<root>/02-use-cases.md`, `<root>/03-selected.md`, `<root>/04-coverage.md` and `<root>/05-run-report.md` instead, and never touch the default root. If the orchestrator passes a scope brief instead of `areas.md` / `SUMMARY.md`, treat the brief as that input.

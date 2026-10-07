@@ -4,9 +4,10 @@ Claude Code users can run `/qa-workshop <slice>` instead. Everyone else (Claude 
 
 ## How a card works
 
-1. Each stage reads files and writes ONE file. The files are the handoff, so a stalled pair can pick up the next stage from the facilitator's copy.
+1. Each stage reads files and writes ONE file (stage 6 writes the framework and spec files its card names). The files are the handoff, so a stalled pair can pick up the next stage from the facilitator's copy.
 2. To give an AI your files, paste them with `bash scripts/bundle.sh <file>... | pbcopy` (Windows: `| clip`, Linux: `| xclip -selection clipboard`), then paste into the chat. An AI that reads files itself can just be pointed at the paths.
 3. Save the AI's answer in the file named on the card, then run the **Check**. A card is done when the check passes, not when the AI sounds sure.
+4. Optional, one second: render the stage as a page with `node scripts/visualize.mjs <stage> --root <root>` (or `npm run visualize -- <stage> --root <root>`) and open the file it prints in `<root>/visuals/`. Stages: after card 2 `discovery` (`02-discovery.html`), card 4 `usecases` (`03-usecases.html`), card 5 `selected` (`04-selected.html`), card 6 `tests` (`05-tests.html`), card 7 `sabotage` (`07-sabotage.html`), card 8 `run` (`06-run.html`); `index.html` links them all.
 
 Setup once: pick a slice slug (for example `qty`) and run `mkdir -p qa/workshop/qty/01-discovery`. Below, `<root>` means `qa/workshop/qty`.
 
@@ -103,35 +104,43 @@ same one, then Deferred with reasons.
 
 ## 6. Write (after the assertion lab)
 
-Attach `.claude/rules/assertion-rules.md`, `.claude/rules/test-style.md`, `.claude/skills/writing-api-tests/SKILL.md`, `02-use-cases.md`, `03-selected.md`, `endpoints.json`.
+Attach `.claude/rules/assertion-rules.md`, `.claude/rules/framework-architecture.md`, `.claude/rules/test-style.md`, `.claude/skills/writing-api-tests/SKILL.md`, `02-use-cases.md`, `03-selected.md`, `endpoints.json`, `playwright.config.ts`, and, if they already exist, the framework files the AI must extend (the files under `src/` and one example spec from `tests/<area>/`). On the first run there are none: the AI builds the layers from scratch, following the skill's section Bootstrap, so keep the first use cases small.
 
 ```text
-Write ONE file tests/<slug>.api.spec.ts for the selected use cases, in ONE answer. Playwright
-`request` fixture only. Small helpers (a Shopper class over APIRequestContext, a price parser)
-at the top. Titles start with the UC id and state a behaviour. Every test gets a fresh request
-context with a unique User-Agent (the host keys a guest cart by IP + User-Agent). Follow the
-nine rules; expected values computed from the input; prove preconditions; read state AFTER the
-call. Business failures can be HTTP 200 with success:false. A body-less POST needs data: ''.
+For the selected use cases, in ONE answer, give me only the files to add or change, each in its
+own code block headed by its path: first the framework parts that are missing (on the first run all of them: src/config/env.ts, the client and an API class in src/api,
+parsers and constants in src/domain, an actor in src/actors, matchers in src/matchers, fixtures in src/fixtures; later only
+what a use case needs), then the Playwright projects to add to playwright.config.ts, then ONE spec per capability, tests/<area>/<capability>.api.spec.ts, behaviours
+only (import { test, expect } from '@/fixtures'; no raw HTTP, regex or process.env in a spec).
+Playwright `request` fixture only. Titles start with the UC id and state a behaviour. Every test gets
+its own actor from a fixture: a fresh guest with a unique User-Agent and its own cookie jar (the host keys a guest cart by IP +
+User-Agent). Add nothing no use case needs. Follow the nine rules; expected values computed from the
+input; prove preconditions; read state AFTER the call. Business failures can be HTTP 200 with success:false. A body-less POST needs data: ''.
 ```
 
-Run: `npx playwright test tests/<slug>.api.spec.ts`. If it fails, paste the output back ONCE and ask for a fix.
-**Check:** runs, 5 or more tests, titles start with a UC id. Change one expectation by hand ($9.50 to $9.60), read the failure, put it back.
+Run: `npm install` (once), `npm run verify`, then `npx playwright test tests/<area>`. If one fails, paste the output back ONCE and ask for a fix.
+**Check:** `npm run verify` is green, the specs run, 5 or more tests, titles start with a UC id. Change one expectation by hand ($9.50 to $9.60), read the failure, put it back.
 
 ## 7. Sabotage: can the tests fail?
 
+Never break your real files. Copy the kit, break ONE thing in the copy's `src/`, run, expect red:
+
 ```bash
-bash scripts/sabotage.sh . tests/<slug>.api.spec.ts
+rsync -a --exclude node_modules --exclude .env --exclude test-results --exclude playwright-report ./ /tmp/kit-mut/ && ln -s "$PWD/node_modules" /tmp/kit-mut/node_modules
+# edit one thing in /tmp/kit-mut/src, for example the URL of one endpoint call in src/api, changed to a wrong path
+(cd /tmp/kit-mut && npx playwright test --reporter=line)
+rm -rf /tmp/kit-mut
 ```
 
-CAUGHT is good. SURVIVED means a test that protects nothing. NOT APPLICABLE means your spec is shaped differently: break the equivalent by hand in a copy.
+Red (a test fails) is good. Green means a survivor: a test that protects nothing. More ideas: the field a parser in `src/domain` reads (a typo, so it finds nothing), a value an API call in `src/api` sends (always the same one), a matcher in `src/matchers` that always passes.
 
 ```text
-Attached: my spec and this mutant: <what you broke>. It SURVIVED. Which assertion is the
+Attached: my spec and this sabotage: <what you broke>. It SURVIVED (the tests stayed green). Which assertion is the
 weakest link, and what is missing (a positive control? a precondition? a second view)? Show
-the smallest change that makes a test fail under this mutant.
+the smallest change that makes a test fail under this sabotage.
 ```
 
-**Check:** every mutant is CAUGHT, or you can explain in one sentence why a survivor is acceptable.
+**Check:** every sabotage turns at least one test red, or you can explain in one sentence why a survivor is acceptable.
 
 ## 8. Debug and recap
 

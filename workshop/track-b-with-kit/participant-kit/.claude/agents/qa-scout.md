@@ -45,5 +45,8 @@ Write `qa/01-discovery/areas.md`:
 
 Finish with a short summary of the partition. Do not write anything under `tests/`.
 
+## Visualize (mandatory, last step)
+After `<root>/01-discovery/areas.md` is written, run from the kit root, as your LAST action: `node scripts/visualize.mjs scout --root <QA root>` (default root `qa/`). It renders `<root>/visuals/01-scout.html` from the files you just wrote. Put the printed page path in your final message. If it fails, say so in one line and continue: never block the stage on it and never hand-write the HTML.
+
 ## QA root
 Every `qa/...` path in this file is relative to the QA root the orchestrator gives you. Default root: `qa/`. A focused run passes a root such as `qa/workshop/cart/`; then write `<root>/01-discovery/areas.md` and never touch the default root.

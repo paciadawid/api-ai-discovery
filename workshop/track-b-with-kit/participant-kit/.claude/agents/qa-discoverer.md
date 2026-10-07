@@ -34,6 +34,7 @@ Rules:
 - Record only what you observed; unsure goes into notes.md as an open question.
 - Do not touch other units' folders, `tests/`, or the consolidated files.
 - Finish with a 5-line summary: flows, endpoints (verified/unverified), surprises, open questions, state left behind.
+- You do not render a visuals page: the consolidator renders the discovery page from your files.
 
 ## QA root
 Every `qa/...` path in this file is relative to the QA root the orchestrator gives you. Default root: `qa/`. A focused run (the workshop) passes a root such as `qa/workshop/cart/`; then read and write `<root>/01-discovery/...`, `<root>/02-use-cases.md`, `<root>/03-selected.md`, `<root>/04-coverage.md` and `<root>/05-run-report.md` instead, and never touch the default root. If the orchestrator passes a scope brief instead of `areas.md` / `SUMMARY.md`, treat the brief as that input.
