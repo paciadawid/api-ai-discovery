@@ -34,7 +34,7 @@ cp -R ../path/to/track-b-with-kit/reference/layered/{src,tests,playwright.config
 npm run verify && npx playwright test                      # 1 gate + 9 cart + known-issue + spike + 16 unit
 ```
 
-Then open Claude Code in a fresh copy (reload so the agents are visible) and run `/qa-workshop` with a cart slice for the real thing: the first write builds the layers from scratch, so time it, including the sabotage step 5b. The old flat sabotage drill (`scripts/sabotage.sh` on `reference/cart.spec.ts`) is Track A only.
+Then open Claude Code in a fresh copy (reload so the agents are visible) and run `/qa-workshop` with a cart slice for the real thing: the first write builds the layers from scratch, so time it, including the sabotage steps 6 and 7. The old flat sabotage drill (`scripts/sabotage.sh` on `reference/cart.spec.ts`) is Track A only.
 
 ## Not here
 
