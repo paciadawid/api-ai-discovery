@@ -6,8 +6,8 @@
 - Discovery uses a VISIBLE browser through `playwright-cli` (`open --headed`, one named session per agent `-s=qa-<unit>`), then replays requests with curl. Never headless, never curl-only.
 - Shared public host: modest volume (2 workers, no retries), a unique User-Agent per test (the host keys a guest cart by IP + User-Agent), no orders, no new accounts.
 - Test titles start with a use-case ID (`UC-CART-01: ...`). Assertion rules: `.claude/rules/assertion-rules.md`. Secrets only from env vars (`.env`, copy `.env.example`), never in files.
-- Run: `npm install` once first (a fresh hand-out has no `node_modules`), then `npm run verify` (typecheck + framework lint) and `npx playwright test`. Workshop cycle: `/qa-workshop <narrow slice>` (default: cart manipulation). Fallback discovery data: `qa/workshop/cart/fallback/`.
-- Map it: `/qa-workshop` has a Map it step after Gate 1: it exports, runs newman and starts Swagger; ideas go to `qa/workshop/<slug>/01-discovery/ideas.md`.
+- Run: `npm install` once first (a fresh hand-out has no `node_modules`), then `npm run verify` (typecheck + framework lint) and `npx playwright test`. Workshop cycle: `/qa-cycle https://bearstore-testsite.smartbear.com <slice> limits: workshop` (default slice: cart manipulation; `/qa-workshop <slice>` is shorthand). Fallback discovery data: `qa/workshop/cart/fallback/`.
+- Map it: `/qa-cycle` has a Map it step after Gate 1: it exports, runs newman and starts Swagger; ideas go to `qa/workshop/<slug>/01-discovery/ideas.md`.
 - After every stage a page is rendered to `<root>/visuals/` with `node scripts/visualize.mjs <stage> --root <root>`; `index.html` links them all.
 - Exports: `npm run export:postman -- --input <endpoints.json>`, `npm run export:openapi -- --input <endpoints.json>`, `npm run swagger`.
 

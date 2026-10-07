@@ -1,21 +1,22 @@
 ---
-description: Run the API-only QA cycle (parallel headed discovery, map it, use cases, prioritization, API tests, debugging, sabotage) against a target site
-argument-hint: <base-url> [scope]
+description: Run the API-only QA cycle (parallel headed discovery, map it, use cases, prioritization, API tests, debugging, sabotage) against a target site; optional `limits: workshop` preset adds hard limits and time boxes for a workshop room
+argument-hint: <base-url> [scope] [limits: workshop]
 ---
 
 Run the API QA cycle for: $ARGUMENTS
 
 This framework contains API tests only (Playwright `request` fixture, no browser tests). Each stage is a subagent that reads the previous stage's files and writes its own under `<root>/`. Do the work through the named agents; do not do it yourself. Every agent must END by delivering its final report as text, even when its files are written. At every STOP, show the user the key content IN THE CHAT (tables and decisions, not just a file path) and wait.
 
-`/qa-workshop` runs the same steps for ONE narrow feature with hard limits and time boxes. The step names and numbers below are identical in both commands; only the scope, the limits and a few shortcuts differ.
+**Optional preset `limits: workshop`.** Without it there are no limits and no time box: the cycle runs until done. With it (for a workshop room) the same steps run for ONE narrow scope under hard limits, time boxes, a cut order and fallbacks, all listed in the section "Limits: workshop" below; the steps, their names and numbers stay identical. `/qa-workshop [scope]` is shorthand for this command with that preset on the Bearstore test site.
 
 **Visuals.** After every stage its agent renders a page to `<root>/visuals/` (`node scripts/visualize.mjs <stage> --root <root>`; `npm run visualize -- <stage> --root <root>`): scout `01-scout.html`, discovery `02-discovery.html`, usecases `03-usecases.html`, selected `04-selected.html`, tests `05-tests.html`, run `06-run.html`, sabotage `07-sabotage.html`, plus `index.html` linking them all (rebuilt on every render; the `index` stage rebuilds only it). Open the page for the user at the gates and at the end, with the OS opener when available (`open` on macOS, `xdg-open` on Linux, `start` on Windows). The page is an addition, not a replacement: the chat summary still shows the key content in text. Rendering takes about a second. If a render fails, say so in one line and carry on.
 
 ## Setup
-- **QA root = `qa/`** by default; a focused run may pass another root such as `qa/<slug>/`. Pass the root to every agent ("QA root: ..."); everything below writes under `<root>/`. Slug = short kebab-case of the scope (of the host when there is no scope); it names `exports/<slug>/` and the UC ids `UC-<SLUG>-NN`.
+- **Parse `$ARGUMENTS`**: if it contains `limits: workshop`, take that token out; the rest is the base URL (first word) and the scope (everything after it, may be empty). When the preset is present, tell the user in one message that the workshop limits apply (QA root, per-step limits, time box, cut order, fallbacks, see "Limits: workshop") and apply them from here on; otherwise there are no limits.
+- **QA root = `qa/`** by default; a focused run may pass another root such as `qa/<slug>/`; with `limits: workshop` it is `qa/workshop/<slug>/`. Pass the root to every agent ("QA root: ..."); everything below writes under `<root>/`. Slug = short kebab-case of the scope (of the host when there is no scope); it names `exports/<slug>/` and the UC ids `UC-<SLUG>-NN`.
 - Credentials, if the scope needs a login: the env var names are passed to the discoverers; secrets never go into files.
 - Pre-flight: run `npm install` once if `node_modules` is missing (a fresh hand-out has none; it also makes `npx playwright-cli` resolve to the right package). Then report one line each: `./node_modules/.bin/playwright-cli list` works; `curl -s -o /dev/null -w "%{http_code}"` on the base URL returns 200; `npm run verify` is green (on an empty kit it checks 0 specs). If one fails, say what and ask before going on.
-- No time box: the cycle runs until done. `/qa-workshop` adds one.
+- No time box: the cycle runs until done. `limits: workshop` adds one (see below).
 
 ## 1. Discovery (headed, parallel)
 Discovery browsers are always visible to the user: agents drive `npx playwright-cli -s=qa-<unit> open <url> --headed` (never headless). Each agent has its own named session (`qa-<unit>`), so several windows open at once; tell the user this before launching. After each agent returns, check its output for the `headed: true` evidence; if an agent reports it could not open a browser or used curl only, treat that area as NOT explored, tell the user, and re-run it once.
@@ -60,7 +61,7 @@ Invoke `qa-prioritizer` with the QA root. Expected: `<root>/03-selected.md` (sta
 Invoke `qa-api-test-writer` ONCE with all selected UC IDs (one call per UC is much slower), the QA root, and a style brief: follow the `writing-api-tests` skill and the rules in `.claude/rules/` (above all `assertion-rules.md` and `framework-architecture.md`). If `src/` already has the layers, the writer extends them; otherwise it bootstraps them from scratch (config, client, API class, domain, actor, matchers, fixtures, `playwright.config.ts` projects). It runs `npm run verify`, runs the specs, and records coverage in `<root>/04-coverage.md`. Expected: new or changed files under `src/` and one spec per capability, `tests/<area>/<capability>.api.spec.ts` (behaviour-style titles starting with the UC id; each test uses the fixture-provided actor with its own isolated session), plus the tests page `<root>/visuals/05-tests.html`. Open the tests page for the user after the write.
 
 ## 5. Run and debug
-Invoke `qa-api-test-debugger` (QA root passed; it starts with `npm run verify`). It fixes test and framework bugs only, at most 3 attempts per test; anything unresolved is reported, not chased. When a failure is not obvious from the curl repro, replay the call in Swagger UI (http://localhost:3000). Expected: `<root>/05-run-report.md` (always written, with a "what was improved" section) and the run page `<root>/visuals/06-run.html`.
+Invoke `qa-api-test-debugger` (QA root passed; it starts with `npm run verify`). It fixes test and framework bugs only, at most 3 attempts per test; anything unresolved is reported, not chased. When a failure is not obvious from the curl repro, replay the call in Swagger UI (http://localhost:3000): open the target in a fresh guest session, copy the session cookies the target sets from DevTools > Application > Cookies, click Authorize, run the failing operation and compare the raw reply and the effect with what the test expected. Expected: `<root>/05-run-report.md` (always written, with a "what was improved" section) and the run page `<root>/visuals/06-run.html`.
 
 ## 6. Sabotage
 Invoke `qa-sabotage-tester` with the QA root (default budget about 25 mutations). It breaks `src/` one thing at a time in a throw-away copy and reports which breaks the tests noticed. It edits nothing in the real kit. Expected: `<root>/06-sabotage-report.md`, `<root>/06-sabotage.json` and the sabotage page `<root>/visuals/07-sabotage.html`.
@@ -70,3 +71,45 @@ If the sabotage report names REAL GAP survivors: invoke `qa-api-test-debugger` w
 
 ## Final output (chat)
 Verdict (passed/failed counts), the tests by UC id, application bugs with curl repro, what was improved in the session (from `<root>/05-run-report.md`, with the sabotage before/after numbers), and what was deferred or left uncovered. Open the run page `<root>/visuals/06-run.html` and the sabotage page `<root>/visuals/07-sabotage.html` for the user, then `<root>/visuals/index.html` once (the orchestrator opens it, not an agent). The exports from Map it are in `exports/<slug>/`; Swagger keeps running for replays.
+
+## Limits: workshop (only when `limits: workshop` is given)
+Everything above stays in force; this section only tightens it. Use it for ONE narrow scope (for example `cart`).
+
+- **QA root = `qa/workshop/<slug>/`**; nothing is written to the default `qa/` root. Slug, `UC-<SLUG>-NN` ids and `exports/<slug>/` as in Setup.
+- Tests must not require credentials unless the scope itself needs a login. Pre-flight adds `npx playwright test --list` (loads the config; "No tests found" is fine before any test exists); if a check fails, say what and offer the fallbacks below.
+- Rendering the visual pages is outside every time box.
+
+| Step | Default (no preset) | `limits: workshop` |
+|---|---|---|
+| 1a Scout | full planning | scope mode: ONE area, about 8 browser commands, the usual 3 to 5 independent units as a menu to narrow from |
+| 1b Scope gate | any number of units, "All units" first | at most N units, where N = 2 for participants on their own laptops and 3 for the facilitator's projector run (the user says "projector"); if the user picks more, recommend the N that best fit the scope and ask which to drop; "All units" is NOT the default; about 3 minutes; a single wave of at most N agents |
+| 1d Discovery | no command limit | about 12 browser commands per unit; no orders or checkout beyond reading; record curl replays for every endpoint; each agent writes only inside `<root>/01-discovery/units/<unit>/` |
+| 2 Use cases | no cap | at most 12 designed (API-level: happy path, negative, boundary, state); at most 5 to automate (a parametrised case may make 2 `test()` blocks, total 8 or fewer) |
+| 3 Prioritize | no cap | at most 5 selected, one per capability first before a second case in the same capability |
+| 4 Write | one call | one call, at most 5 use cases; bootstrapping `src/` is part of its budget, so keep the first use cases small |
+| 5 Debug | at most 3 attempts per test | time box 10 minutes, at most 2 fix attempts per test; unresolved is reported, not chased |
+| 6 Sabotage | about 25 mutations | budget 6 mutations (one per layer, those guarding the selected use cases first); optional, cut first |
+| 7 Strengthen | one round if real gaps | optional, only if step 6 ran and time remains |
+
+Time box (show it to the user and keep to it):
+
+| Step | Budget |
+|---|---|
+| 1 Scout + Scope gate (narrow the slice) | 6 min |
+| 1 Discovery (parallel headed browsers) + consolidation | 14 min |
+| Gate 1 (read the summary, at most 3 decisions) | 5 min |
+| Map it: export, run the collection, read Swagger | 8 min |
+| 2 Use cases + 3 Prioritize + Gate 2 | 8 min |
+| 4 Write tests (max 5 use cases) | 20 min |
+| 5 Run and debug | 12 min |
+| 6 Sabotage + 7 Strengthen (optional) | 8 min |
+
+Gate 1 stays short: endpoints table (id, method, path, purpose, verified), surprises and at most 3 numbered decisions with a recommendation.
+
+**Cut order.** If the Write step (4) overruns, the facilitator has a fallback for it: say so and ask the facilitator rather than cutting use cases silently. If another step overruns by more than 3 minutes, say so and cut in this order: steps 6 and 7, the Postbot step in Map it, then the lowest-scored selected use case, then the debug attempts. Use the discovery fallback before cutting anything else.
+
+**Discovery fallback** (if a browser cannot open, the site is down, or discovery runs over time): if `<root>/fallback/endpoints.json` exists, tell the user and use it: copy it and `auth.md` into `<root>/01-discovery/`, skip the consolidator, and from step 2 on tell the agents that the endpoint catalogue is the only discovery input (no SUMMARY.md). Say clearly in the final output that the fallback data was used.
+
+**Postbot fallback** (Map it, step 3): without a Postman account use `<root>/fallback/postbot-improved.postman_collection.json` if it exists, and say so.
+
+**Final output**: when steps 6 and 7 were cut, say so and leave out the sabotage page and the before/after numbers.

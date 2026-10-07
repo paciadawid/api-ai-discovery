@@ -1,6 +1,6 @@
 # Layered answer key and fallback (facilitator only)
 
-A finished example of the framework that the participants' AI builds from scratch in Track B: `src/` (config, api, domain, actors, matchers, fixtures) and `tests/` for the cart slice. It was produced by the agentic flow itself (`/qa-workshop` on the cart, then the writer, debugger and sabotage agents), so it is what a good run looks like, not a hand-made ideal.
+A finished example of the framework that the participants' AI builds from scratch in Track B: `src/` (config, api, domain, actors, matchers, fixtures) and `tests/` for the cart slice. It was produced by the agentic flow itself (`/qa-cycle` on the cart, then the writer, debugger and sabotage agents), so it is what a good run looks like, not a hand-made ideal.
 
 **Never hand this folder to participants.** They get `participant-kit/`, which ships tooling only (no `src/`, empty `tests/`). Show this one only as the facilitator, or use it as the fallback below.
 

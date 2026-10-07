@@ -1,6 +1,6 @@
 # Track B: participants already have the kit
 
-Each pair has `participant-kit/` (eight agents, two commands, three skills, four rules, exporters, and tooling only: `tsconfig.json`, framework lint, visual pages, a Playwright config without projects, empty `tests/`). `/qa-workshop` follows the canonical order of `/qa-cycle`: Setup, 1 Discovery, Gate 1, **Map it** (Postman export, newman run, Swagger), 2 Use cases, 3 Prioritize, Gate 2, 4 Write, 5 Run and debug, then the optional 6 Sabotage and 7 Strengthen (cut first). They drive with `/qa-workshop <slice>`; you steer and run the gates as a group. The kit ships no `src/`: on the first write the AI builds a layered framework from scratch (`src/config`, `api`, `domain`, `actors`, `matchers`, `fixtures`, and `tests/<area>/<capability>.api.spec.ts`), guided by the rules and the `writing-api-tests` skill. After every stage a visual page is rendered to `<root>/visuals/`.
+Each pair has `participant-kit/` (eight agents, two commands, three skills, four rules, exporters, and tooling only: `tsconfig.json`, framework lint, visual pages, a Playwright config without projects, empty `tests/`). The master class drives `/qa-cycle`, in the canonical order: Setup, 1 Discovery (scout, **Scope gate**, units explored in parallel, consolidate), Gate 1, **Map it** (Postman export, newman run, Swagger), 2 Use cases, 3 Prioritize, Gate 2, 4 Write, 5 Run and debug, then the optional 6 Sabotage and 7 Strengthen (cut first). They run `/qa-cycle https://bearstore-testsite.smartbear.com <slice> limits: workshop` (shorthand: `/qa-workshop <slice>`); the optional `limits: workshop` preset holds the room limits (time box, unit cap, caps on use cases, fallbacks, QA root `qa/workshop/<slug>/`), without it the cycle has none. You steer and run the three STOP gates (scope, Gate 1, Gate 2) as a group. The kit ships no `src/`: on the first write the AI builds a layered framework from scratch (`src/config`, `api`, `domain`, `actors`, `matchers`, `fixtures`, and `tests/<area>/<capability>.api.spec.ts`), guided by the rules and the `writing-api-tests` skill. After every stage a visual page is rendered to `<root>/visuals/`.
 
 | File / folder | What it is |
 |---|---|
@@ -34,7 +34,7 @@ cp -R ../path/to/track-b-with-kit/reference/layered/{src,tests,playwright.config
 npm run verify && npx playwright test                      # 1 gate + 9 cart + known-issue + spike + 16 unit
 ```
 
-Then open Claude Code in a fresh copy (reload so the agents are visible) and run `/qa-workshop` with a cart slice for the real thing: the first write builds the layers from scratch, so time it, including Run and debug and then the sabotage steps 6 and 7. The old flat sabotage drill (`scripts/sabotage.sh` on `reference/cart.spec.ts`) is Track A only.
+Then open Claude Code in a fresh copy (reload so the agents are visible) and run `/qa-cycle https://bearstore-testsite.smartbear.com cart limits: workshop` for the real thing: the first write builds the layers from scratch, so time it, including Run and debug and then the sabotage steps 6 and 7. The old flat sabotage drill (`scripts/sabotage.sh` on `reference/cart.spec.ts`) is Track A only.
 
 ## Not here
 
