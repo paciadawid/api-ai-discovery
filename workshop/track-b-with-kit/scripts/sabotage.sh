@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # "Prove the tests can fail": break the code under the tests on purpose and see which run notices.
 # Usage: [MUTANTS="1 4"] bash sabotage.sh <project-dir-with-playwright-config> <spec-file-relative-to-that-dir>
+# For Track A and the FLAT answer key only (flat one-file spec, 4 mutants on its parser and calls); it no longer fits the layered Track B kit.
 #   Track A answer key:  bash scripts/sabotage.sh reference cart.spec.ts
-#   Track B own tests (run in the kit folder):  bash scripts/sabotage.sh . tests/<slug>.api.spec.ts
+#   Rehearsal outside the kit with the flat key:  bash scripts/sabotage.sh <dir-with-playwright-config> <spec>
+# Track B sabotage is the qa-sabotage-tester agent (or the manual throw-away copy in the writing-api-tests skill); the kit no longer ships this script.
 # Each sabotage is applied to a COPY (<name>.mutN.spec.ts) that is deleted afterwards; the original is never edited.
 # A sabotage whose pattern does not occur in the spec is reported as NOT APPLICABLE: apply the idea by hand.
 set -u
