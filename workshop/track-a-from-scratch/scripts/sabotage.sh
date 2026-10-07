@@ -14,10 +14,10 @@ trap '[ ${#mutants[@]} -gt 0 ] && rm -f "${mutants[@]}"' EXIT
 run() { (cd "$dir" && npx playwright test --reporter=line "$1" 2>&1); }
 
 names=(
-  "delete endpoint URL is wrong"
-  "parser can no longer see cart line inputs (attribute case)"
-  "update ignores the new quantity"
-  "parser reads every line's prices from the FIRST line (wrong as soon as a cart has two products)"
+  "delete call goes to a wrong URL (delete does nothing)"
+  "cart-page reader cannot see the lines (cart always looks empty)"
+  "update always sends quantity 1 (the change is ignored)"
+  "price reader gives every line the FIRST line's price (wrong with two products)"
 )
 exprs=(
   's#deletecartitem?cartItemId#deletecartitemX?cartItemId#'
