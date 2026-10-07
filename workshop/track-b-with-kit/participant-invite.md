@@ -1,4 +1,4 @@
-# Invitation message (copy, adjust the bracketed parts, send a few days before)
+# Invitation message (OPTIONAL: only if the organizer can forward it; the workshop works without it, setup then happens in the room)
 
 **Subject: Tests worth trusting: what to bring (10 minutes, all optional)**
 
