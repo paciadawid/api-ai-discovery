@@ -110,7 +110,7 @@
   <details class="test" open>
     <summary><span class="uc">CART-01</span><span class="title">A first product lands in the cart as ONE line, and every view agrees</span></summary>
     <div class="body">
-      <div class="flow"><span class="step then">cart is empty<small>CART</small></span><span class="arrow">&rarr;</span><span class="step when">add 1 golfball<small>ADD</small></span><span class="arrow">&rarr;</span><span class="step then">read lines + subtotal<small>CART</small></span><span class="arrow">&rarr;</span><span class="step then">read badge<small>COUNTERS</small></span></div>
+      <div class="flow"><span class="step given">cart is empty<small>CART</small></span><span class="arrow">&rarr;</span><span class="step when">add 1 golfball<small>ADD</small></span><span class="arrow">&rarr;</span><span class="step then">read lines + subtotal<small>CART</small></span><span class="arrow">&rarr;</span><span class="step then">read badge<small>COUNTERS</small></span></div>
       <ul class="checks"><li>Precondition proven: the parser works and the cart starts with 0 lines</li><li>ADD reports <code>success:true</code> (not just HTTP 200)</li><li>CART has exactly 1 line: quantity 1, unit $1.90, line total $1.90</li><li>Cart subtotal is $1.90</li><li>Header badge is 1</li></ul>
     </div>
   </details>
