@@ -22,13 +22,16 @@ Discovery browsers are always visible to the user: agents drive `npx playwright-
 
 a. **Scout** - invoke `qa-scout` with the base URL, the scope and the QA root. Expected: `<root>/01-discovery/areas.md` (areas, each split into 2-4 independent units, with state ownership and effort) and the scout page `<root>/visuals/01-scout.html`.
 
-b. **Ask the user what to explore.** If a scope was given and `areas.md` has a single area, do not ask which area: show its units table in chat and continue with all units (the user may drop some). Otherwise: discovery can take long, so before exploring show the "Areas" list from areas.md in chat (area, what it covers, units, effort) and ask which areas to explore. Use AskUserQuestion with `multiSelect: true`; options are the areas (put "All areas" first as the recommendation for a first run). The tool allows at most 4 options: if there are more than 3 areas, group the least important into "Everything else" or ask in plain chat with a numbered list instead. The user may also answer "Other" with a custom selection.
+b. **STOP - Scope gate (narrow after the scout).** The scope given at the start may be broad (everything, or one area such as "cart"); this gate is where the user narrows it before any discovery browser opens, for example to "cart manipulation only" or "cart calculation only". Open the scout page `<root>/visuals/01-scout.html` for the user and show in chat: the "Areas" list (area, what it covers, units, effort) and the units table (unit, what it explores, owns state, effort). Ask what to explore. Use AskUserQuestion with `multiSelect: true`; options are the units (put "All units" first as the recommendation for a first run). The tool allows at most 4 options: if there are more than 3 units, group the least important into "Everything else" or ask in plain chat with a numbered list instead. The user may also answer "Other" with a narrower scope in words. Then:
+   - the answer picks units that exist: continue with exactly those units;
+   - the answer describes a slice that maps onto existing units: continue with those units and say which;
+   - the answer describes a slice the units do not cover or that cuts across them (for example "cart calculation" when the scout split the area by user action): re-run `qa-scout` once with the narrower scope text and the current `areas.md` as context (scope mode, about 8 browser commands), show the new units table and ask again. At most 2 refinements.
+   Record the decision: append a section `## Scope decision` to `<root>/01-discovery/areas.md` with the lines `- Asked: <the user's words>`, `- Explored units: <unit keys, comma separated>`, `- Not explored (user's choice): <unit keys, comma separated>` and `- Refinements: <n>`, then re-render the scout page (`node scripts/visualize.mjs scout --root <root>`; it marks each unit EXPLORED or not explored). Skipped units are recorded as "not explored (user's choice)" in the summaries.
 
 c. **Plan parallel work.** The parallel work items are UNITS, not areas:
-   - Collect all units of the chosen areas.
+   - Collect the units chosen at the scope gate.
    - Run at most 5 `qa-discoverer` agents at once. If there are more units, run them in waves of 5, longest (effort L) first.
-   - If the user chose a single area, still run one agent per unit of that area (that is why every area is split into units). If that gives only one unit, tell the user it cannot be parallelized.
-   - Skipped areas are recorded as "not explored (user's choice)" for the summary.
+   - Run one agent per chosen unit (that is why every area is split into units). If that gives only one unit, tell the user it cannot be parallelized.
 
 d. **Explore in parallel** - invoke one `qa-discoverer` per unit of the current wave, ALL in a single message so they run concurrently. Pass each: base URL, its unit key, its row from areas.md, the QA root, and the credential env var names. Expected: `<root>/01-discovery/units/<unit>/`.
    If an agent fails or returns nothing, re-run only that unit once; if it still fails, record the gap and continue.

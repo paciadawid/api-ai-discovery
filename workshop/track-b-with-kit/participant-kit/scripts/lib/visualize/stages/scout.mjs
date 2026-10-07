@@ -21,17 +21,30 @@ export default function render(ctx) {
   units.forEach((u) => { const k = String(u.effort).trim().charAt(0).toUpperCase(); if (k in effort) effort[k]++; });
   const noLogin = units.filter((u) => /^no\b/i.test(u.login)).length;
 
+  // "Scope decision" section appended by the orchestrator at the scope gate: "- Explored units: a, b" and "- Not explored (user's choice): c".
+  const decision = findSection(text, /scope decision/i);
+  const decisionItems = decision ? parseList(decision.body) : [];
+  const listed = (re) => {
+    const item = decisionItems.find((i) => re.test(plain(i.text)));
+    return item ? plain(item.text).replace(re, '').split(/[,;]/).map((s) => s.replace(/[`*]/g, '').trim()).filter(Boolean) : [];
+  };
+  const chosen = new Set(listed(/^explored units?:\s*/i));
+  const skipped = new Set(listed(/^not explored[^:]*:\s*/i));
+  const hasDecision = Boolean(decision) && (chosen.size > 0 || skipped.size > 0);
+  const scopeChip = (key) => (chosen.has(key) ? chip('EXPLORED', 'ok') : skipped.has(key) ? chip('not explored', 'warn') : '');
+
   const overview = tiles([
     tile(areaCount || '?', 'areas'),
     tile(units.length || '?', 'units'),
+    ...(hasDecision ? [tile(`${chosen.size} of ${units.length}`, 'units chosen at the scope gate')] : []),
     tile(`${effort.S} / ${effort.M} / ${effort.L}`, 'effort S / M / L units'),
     tile(units.length ? `${noLogin} of ${units.length}` : '?', 'units that need no login'),
     tile(excludedItems.length, 'excluded from scope'),
   ]);
 
   const unitsHtml = guard(`units table in ${FILE}`, text, () => units.length && table(
-    ['Unit', 'Area', 'Entry', 'Needs login', 'Owns state', 'Effort'],
-    units.map((u) => [`<b>${esc(u.key)}</b>`, esc(u.area), inline(u.entry), u.login ? chip(u.login.split(/[\s(]/)[0].toLowerCase() === 'no' ? 'no login' : u.login, /^no/i.test(u.login) ? 'ok' : 'warn') : '', inline(u.owns), effortChip(u.effort)]),
+    ['Unit', 'Area', 'Entry', 'Needs login', 'Owns state', 'Effort', ...(hasDecision ? ['Scope gate'] : [])],
+    units.map((u) => [`<b>${esc(u.key)}</b>`, esc(u.area), inline(u.entry), u.login ? chip(u.login.split(/[\s(]/)[0].toLowerCase() === 'no' ? 'no login' : u.login, /^no/i.test(u.login) ? 'ok' : 'warn') : '', inline(u.owns), effortChip(u.effort), ...(hasDecision ? [scopeChip(u.key)] : [])]),
   ) + details('What each unit has to find out', ul(units.map((u) => `<b>${esc(u.key)}</b>: ${inline(u.find)}`))));
 
   const areasHtml = areaItems.length ? ul(areaItems.map((i) => inline(i.text))) : unreadable(`"Areas" section in ${FILE}`, text);
@@ -44,6 +57,7 @@ export default function render(ctx) {
 
   const body = [
     overview,
+    decision ? section('Scope decision', mdBlock(decision.body)) : '',
     section('Units', unitsHtml),
     section('Areas', areasHtml),
     section('Excluded (outside scope)', excludedHtml),
@@ -52,7 +66,7 @@ export default function render(ctx) {
     intro ? details('What the scout saw', mdBlock(intro)) : '',
   ].join('\n');
   const eff = ['S', 'M', 'L'].filter((k) => effort[k]).map((k) => `${effort[k]} x ${k}`).join(', ');
-  return { headline: `${areaCount} area${areaCount === 1 ? '' : 's'}, ${units.length} unit${units.length === 1 ? '' : 's'}${eff ? ` (${eff})` : ''}, ${excludedItems.length} excluded`, body };
+  return { headline: `${areaCount} area${areaCount === 1 ? '' : 's'}, ${units.length} unit${units.length === 1 ? '' : 's'}${eff ? ` (${eff})` : ''}, ${excludedItems.length} excluded${hasDecision ? `, ${chosen.size} chosen at the scope gate` : ''}`, body };
 }
 
 function unitsRows(t) {

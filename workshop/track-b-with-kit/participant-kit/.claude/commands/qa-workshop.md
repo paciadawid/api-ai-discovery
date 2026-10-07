@@ -8,7 +8,7 @@ Run the workshop version of the API QA cycle for: $ARGUMENTS (if empty: "cart ma
 Target: https://bearstore-testsite.smartbear.com. Same steps, same numbers and same agents as `/qa-cycle`; every agent must END by delivering its final report as text, even when its files are written. At every STOP, show the key content IN THE CHAT and wait. Do the work through the named agents.
 
 **What differs from `/qa-cycle`** (everything else is identical):
-- one narrow scope: the scout runs in scope mode (about 8 browser commands, one area) and plans only 2-3 units; the fixed units table in step 1 is the hint for the default cart scope and the fallback if the scout fails;
+- one narrow scope: the scout runs in scope mode (about 8 browser commands, one area), and at the scope gate the user narrows its units menu down to 2-3 units; the fixed units table in step 1 is the hint for the default cart scope and the fallback if the scout fails;
 - hard limits: about 12 browser commands per unit, at most 12 use cases designed and 5 automated, debug time box 10 minutes with at most 2 fix attempts per test, sabotage budget 6 mutations;
 - a time box for the whole run (below) and a cut order when a step overruns;
 - a fallback for discovery (`<root>/fallback/`) and for the Write step (held by the facilitator);
@@ -24,7 +24,8 @@ Target: https://bearstore-testsite.smartbear.com. Same steps, same numbers and s
 
 | Step | Budget |
 |---|---|
-| 1 Discovery (2-3 headed browsers in parallel) + consolidation | 17 min |
+| 1 Scout + Scope gate (narrow the slice) | 6 min |
+| 1 Discovery (2-3 headed browsers in parallel) + consolidation | 14 min |
 | Gate 1 (read the summary, 3 decisions) | 5 min |
 | Map it: export, run the collection, read Swagger | 8 min |
 | 2 Use cases + 3 Prioritize + Gate 2 | 8 min |
@@ -37,11 +38,11 @@ If the Write step (4) overruns, the facilitator has a fallback for it: say so an
 ## 1. Discovery (headed, parallel)
 Discovery browsers are always visible to the user. Tell the user how many browser windows will open before launching.
 
-a. **Scout** - invoke `qa-scout` with the base URL, the scope, the QA root and these limits: scope mode (plan ONE area), about 8 browser commands, and plan exactly N units where N = 2 for participants running on their own laptops (to keep the shared host and their machines calm) and 3 for the facilitator's projector run. For the default cart scope pass the table below as the starting hint (units must stay independent, one owner per mutable state). Expected: `<root>/01-discovery/areas.md` and the scout page `<root>/visuals/01-scout.html`. If the scout fails or runs over, use the table below as the plan: write the same `areas.md` yourself from it (one area, N units) and render the scout page with `node scripts/visualize.mjs scout --root <root>`.
+a. **Scout** - invoke `qa-scout` with the base URL, the scope, the QA root and these limits: scope mode (plan ONE area), about 8 browser commands, and the usual 3 to 5 independent units as a menu to narrow from at the scope gate. The scope may be broad (for example just "cart"). For the default cart scope pass the table below as the starting hint (units must stay independent, one owner per mutable state). Expected: `<root>/01-discovery/areas.md` and the scout page `<root>/visuals/01-scout.html`. If the scout fails or runs over, use the table below as the plan: write the same `areas.md` yourself from it (one area, the table's units) and render the scout page with `node scripts/visualize.mjs scout --root <root>`; the scope gate below still applies.
 
-b. **Show the plan.** Show the units table from `areas.md` in chat (unit, what it explores, owns state, effort). There is one area, so do not ask which area; continue with all units unless the user drops one.
+b. **STOP - Scope gate (narrow after the scout).** Same gate as in `/qa-cycle`: open the scout page `<root>/visuals/01-scout.html` for the user, show the units table in chat (unit, what it explores, owns state, effort) and ask what to explore (AskUserQuestion with `multiSelect: true`, "All units" is NOT the default here; the user may also answer "Other" with a narrower scope in words, for example "cart manipulation only" or "cart calculation only"). A slice that maps onto existing units: continue with those units. A slice the units do not cover or cut across: re-run `qa-scout` once with the narrower scope text and the current `areas.md` as context, show the new table and ask again (at most 2 refinements). Limit: at most N units, where N = 2 for participants running on their own laptops (to keep the shared host and their machines calm) and 3 for the facilitator's projector run; if the user picks more, recommend the N that best fit the scope and ask which to drop. Record the decision exactly as in `/qa-cycle` (a `## Scope decision` section appended to `<root>/01-discovery/areas.md`, then re-render the scout page). Keep this gate short: about 3 minutes.
 
-c. **Plan parallel work.** One `qa-discoverer` per unit, at most N at once (N is 2 or 3, so a single wave). If only one unit is left, tell the user it cannot be parallelized.
+c. **Plan parallel work.** One `qa-discoverer` per chosen unit, a single wave of at most N agents. If only one unit is left, tell the user it cannot be parallelized.
 
 d. **Explore in parallel** - see below for the units and limits.
 
