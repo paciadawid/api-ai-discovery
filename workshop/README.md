@@ -7,7 +7,7 @@ An AI test crew that explores an undocumented API, writes and debugs tests, and 
 | Folder | Use it when |
 |---|---|
 | `track-a-from-scratch/` | participants arrive with **nothing**; you build the project and the agents live (`starter/` is the safety net) |
-| `track-b-with-kit/` | participants already have the **kit** (`participant-kit/`) and drive in pairs with `/qa-workshop <slice>` |
+| `track-b-with-kit/` | participants already have the **kit** (`participant-kit/`) and drive in pairs, one laptop per pair: Claude Code runs `/qa-workshop <slice>`, any other AI follows `stage-cards.md` (open registration, laptops optional) |
 | `_archive/` | the old combined slides and run sheet; safe to delete |
 | `../solution/` | the finished **demo project**: layered framework, 33 tests, Postman and Swagger exports; show it, do not hand it out |
 

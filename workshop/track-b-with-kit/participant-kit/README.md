@@ -1,22 +1,26 @@
 # Bearstore API test kit (workshop)
 
-Claude Code agents that discover an undocumented API in a visible browser, design use cases, write Playwright API tests and debug them. Target: https://bearstore-testsite.smartbear.com (a shared public demo shop).
+A kit that takes you through the whole path on an undocumented API: discover it, design use cases, prioritise, write Playwright API tests, prove they can fail, debug them. Target: https://bearstore-testsite.smartbear.com (a shared public demo shop).
+
+**Work in pairs, one laptop per pair; no laptop? Join a pair.** Two ways to drive, same stages and files:
+- **Claude Code:** seven agents and `/qa-workshop <slice>` do the stages for you.
+- **Any other AI** (a chat in the browser, Copilot, Gemini, a local model): follow `stage-cards.md`. You open the browser and paste, the AI organises and writes.
 
 ## Before the workshop (10 min)
 
-Requirements: Node 20.12 or newer, Claude Code.
+Requirements: Node 20.12 or newer. Claude Code **or** any AI chat you already use.
 
 ```bash
 npm ci
-npx playwright install chromium
-bash scripts/preflight.sh      # expect three PASS lines and "Pre-flight OK"
+bash scripts/preflight.sh      # expect PASS lines and "Pre-flight OK"
+npx playwright install chromium   # Claude Code path only: its agents open a headed browser
 ```
 
-Then open Claude Code **in this folder** and restart it once so the agents and commands load. `/agents` should list seven `qa-*` agents.
+Claude Code path: open Claude Code **in this folder** and restart it once so the agents and commands load. `/agents` should list seven `qa-*` agents. Any-AI path: nothing more to install; you use your own browser's DevTools.
 
 No login is needed for the cart slices. Only account slices need `BEARSTORE_EMAIL` / `BEARSTORE_PASSWORD` in a `.env` (copy `.env.example`, never commit it, never paste it in a chat).
 
-## During the workshop
+## During the workshop (Claude Code path; any other AI: see `stage-cards.md`)
 
 1. Narrow your scope to a **slice** (3 to 5 endpoints, your own state, nothing irreversible).
 2. `/qa-workshop <your slice>`: two headed browser windows open, then the agents report. At **Gate 1** read the summary and answer the decisions.
@@ -34,6 +38,8 @@ Run the exports by hand with `npm run export:postman -- --input <endpoints.json>
 | Problem | Do |
 |---|---|
 | Browser window does not open | tell the facilitator; the command can use `qa/workshop/cart/fallback/` |
+| Your AI stalls, hits a limit or is down | copy the facilitator's finished file for that stage and carry on with the next one; or borrow the other laptop in your pair |
+| No laptop | join a pair; you decide at the gates |
 | An agent ends without a report | rerun that stage once |
 | No Postman account (Postbot) | use `qa/workshop/cart/fallback/postbot-improved.postman_collection.json` with `npx newman run` |
 | Site is slow or down | wait, or work from the facilitator's finished artifacts |
