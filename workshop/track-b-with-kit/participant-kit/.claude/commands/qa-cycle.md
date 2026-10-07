@@ -12,7 +12,7 @@ Discovery browsers are always visible to the user: agents drive `npx playwright-
 
 a. **Scout** - invoke `qa-scout` with the base URL and scope. Expected: `qa/01-discovery/areas.md` (areas, each split into 2-4 independent units, with state ownership and effort).
 
-b. **Ask the user what to explore.** Discovery can take long, so before exploring show the "Areas" list from areas.md in chat (area, what it covers, units, effort) and ask which areas to explore. Use AskUserQuestion with `multiSelect: true`; options are the areas (put "All areas" first as the recommendation for a first run). The tool allows at most 4 options: if there are more than 3 areas, group the least important into "Everything else" or ask in plain chat with a numbered list instead. The user may also answer "Other" with a custom selection.
+b. **Ask the user what to explore.** If a scope was given and `areas.md` has a single area, do not ask which area: show its units table in chat and continue with all units (the user may drop some). Otherwise: discovery can take long, so before exploring show the "Areas" list from areas.md in chat (area, what it covers, units, effort) and ask which areas to explore. Use AskUserQuestion with `multiSelect: true`; options are the areas (put "All areas" first as the recommendation for a first run). The tool allows at most 4 options: if there are more than 3 areas, group the least important into "Everything else" or ask in plain chat with a numbered list instead. The user may also answer "Other" with a custom selection.
 
 c. **Plan parallel work.** The parallel work items are UNITS, not areas:
    - Collect all units of the chosen areas.
