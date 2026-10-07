@@ -53,4 +53,4 @@ Same nine assertion rules, cut order and fallback ladder in both tracks. Only se
 - One timed rehearsal per track; replace the budgets with real minutes.
 - Morning of: the reference suite, the sabotage script and the Map it check of the track you teach (in its conspect, section 1).
 - Render slides: `npx @marp-team/marp-cli <track>/slides.md --html`.
-- Nothing here is under git; nothing has been committed or pushed.
+- The repo is public: https://github.com/paciadawid/api-ai-discovery. Facilitator conspects, slides and `_archive/` are gitignored and stay local.
