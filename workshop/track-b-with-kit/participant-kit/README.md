@@ -24,7 +24,7 @@ No login is needed for the cart slices. Only account slices need `BEARSTORE_EMAI
 ## During the workshop (Claude Code path; any other AI: see `stage-cards.md`)
 
 1. Narrow your scope to a **slice** (3 to 5 endpoints, your own state, nothing irreversible).
-2. `/qa-workshop <your slice>`: two headed browser windows open, then the agents report. At **Gate 1** read the summary and answer the decisions.
+2. `/qa-workshop <your slice>`: a short scout plans your slice into two units (you see the scout page), then two headed browser windows open and the agents report. At **Gate 1** read the summary and answer the decisions.
    Right after Gate 1 the command **maps it**: it exports Postman and OpenAPI, runs the raw collection in newman (expect red: it is a map, not a suite) and starts Swagger on http://localhost:3000. Read the Swagger page for your slice and the 10-line `qa/workshop/<slug>/01-discovery/ideas.md`.
 3. At **Gate 2** read the selected use cases and edit them. **Do not answer yet.** Reply "approved" after the assertion lab, so the writer works with the nine rules fresh.
 4. On the first write the AI builds the framework from scratch, so expect a few minutes more than on later runs. Review the result against the checklist in `.claude/skills/writing-api-tests/SKILL.md`. The tests are layered: endpoint calls in `src/api`, parsers and constants in `src/domain`, business verbs in `src/actors`, assertions in `src/matchers`, and one spec per capability in `tests/<area>/<capability>.api.spec.ts` (for the cart: `tests/cart/`). `npm run verify` (typecheck + framework lint) must be green.

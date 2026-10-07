@@ -8,13 +8,13 @@ Run the workshop version of the API QA cycle for: $ARGUMENTS (if empty: "cart ma
 Target: https://bearstore-testsite.smartbear.com. Same steps, same numbers and same agents as `/qa-cycle`; every agent must END by delivering its final report as text, even when its files are written. At every STOP, show the key content IN THE CHAT and wait. Do the work through the named agents.
 
 **What differs from `/qa-cycle`** (everything else is identical):
-- one narrow scope, no scout: the 2-3 discovery units are fixed below instead of coming from `areas.md` (so no `01-scout.html` page);
+- one narrow scope: the scout runs in scope mode (about 8 browser commands, one area) and plans only 2-3 units; the fixed units table in step 1 is the hint for the default cart scope and the fallback if the scout fails;
 - hard limits: about 12 browser commands per unit, at most 12 use cases designed and 5 automated, debug time box 10 minutes with at most 2 fix attempts per test, sabotage budget 6 mutations;
 - a time box for the whole run (below) and a cut order when a step overruns;
 - a fallback for discovery (`<root>/fallback/`) and for the Write step (held by the facilitator);
 - Sabotage and Strengthen (steps 6 and 7) are optional and cut first.
 
-**Visuals.** After every stage its agent renders a page to `<root>/visuals/` (`node scripts/visualize.mjs <stage> --root <root>`; `npm run visualize -- <stage> --root <root>`): discovery `02-discovery.html`, usecases `03-usecases.html`, selected `04-selected.html`, tests `05-tests.html`, run `06-run.html`, sabotage `07-sabotage.html`, plus `index.html` linking them all (rebuilt on every render; there is no scout here, so no `01-scout.html`). Open the page for the user at the gates and at the end, with the OS opener when available (`open` on macOS, `xdg-open` on Linux, `start` on Windows). The page is an addition, not a replacement: the chat summary still shows the key content in text. Rendering takes about a second and does not count against the time boxes. If a render fails, say so in one line and carry on.
+**Visuals.** After every stage its agent renders a page to `<root>/visuals/` (`node scripts/visualize.mjs <stage> --root <root>`; `npm run visualize -- <stage> --root <root>`): scout `01-scout.html`, discovery `02-discovery.html`, usecases `03-usecases.html`, selected `04-selected.html`, tests `05-tests.html`, run `06-run.html`, sabotage `07-sabotage.html`, plus `index.html` linking them all (rebuilt on every render; the `index` stage rebuilds only it). The pages are the same as in `/qa-cycle`. Open the page for the user at the gates and at the end, with the OS opener when available (`open` on macOS, `xdg-open` on Linux, `start` on Windows). The page is an addition, not a replacement: the chat summary still shows the key content in text. Rendering takes about a second and does not count against the time boxes. If a render fails, say so in one line and carry on.
 
 ## Setup
 - Slug = short kebab-case of the scope (default `cart`). **QA root = `qa/workshop/<slug>/`**. Pass this root to every agent ("QA root: ..."); nothing is written to the default `qa/` root. UC ids are `UC-<SLUG>-NN`; the slug also names `exports/<slug>/`. Tests go into the layered framework: `src/` (api, domain, actors, matchers, fixtures) for what is missing (on the first run all of it, see step 4), and one spec per capability, `tests/<area>/<capability>.api.spec.ts` (the area folder is named after the area, for example the scope slug), not one file per slice.
@@ -34,8 +34,20 @@ Target: https://bearstore-testsite.smartbear.com. Same steps, same numbers and s
 
 If the Write step (4) overruns, the facilitator has a fallback for it: say so and ask the facilitator rather than cutting the use cases silently. If another step overruns by more than 3 minutes, say so and cut in this order: steps 6 and 7, the Postbot step in Map it, then the lowest-scored selected use case, then the debug attempts. Use the fallback for discovery before cutting anything else.
 
-## 1. Discovery (headed, parallel, no scout)
-Tell the user how many browser windows will open. Define 2-3 UNITS (participants running on their own laptops use 2, to keep the shared host and their machines calm; the facilitator's projector run uses 3). For the default cart scope use exactly these (each unit uses its OWN browser session and curl jar, starts with its own anonymous cart and adds its own product, so nothing is shared):
+## 1. Discovery (headed, parallel)
+Discovery browsers are always visible to the user. Tell the user how many browser windows will open before launching.
+
+a. **Scout** - invoke `qa-scout` with the base URL, the scope, the QA root and these limits: scope mode (plan ONE area), about 8 browser commands, and plan exactly N units where N = 2 for participants running on their own laptops (to keep the shared host and their machines calm) and 3 for the facilitator's projector run. For the default cart scope pass the table below as the starting hint (units must stay independent, one owner per mutable state). Expected: `<root>/01-discovery/areas.md` and the scout page `<root>/visuals/01-scout.html`. If the scout fails or runs over, use the table below as the plan: write the same `areas.md` yourself from it (one area, N units) and render the scout page with `node scripts/visualize.mjs scout --root <root>`.
+
+b. **Show the plan.** Show the units table from `areas.md` in chat (unit, what it explores, owns state, effort). There is one area, so do not ask which area; continue with all units unless the user drops one.
+
+c. **Plan parallel work.** One `qa-discoverer` per unit, at most N at once (N is 2 or 3, so a single wave). If only one unit is left, tell the user it cannot be parallelized.
+
+d. **Explore in parallel** - see below for the units and limits.
+
+e. **Consolidate** - `qa-discovery-consolidator`, see below.
+
+Units: for the default cart scope the scout starts from exactly these (each unit uses its OWN browser session and curl jar, starts with its own anonymous cart and adds its own product, so nothing is shared):
 
 | unit key | what it explores | entry |
 |---|---|---|
@@ -43,13 +55,13 @@ Tell the user how many browser windows will open. Define 2-3 UNITS (participants
 | cart-update | change a line quantity (valid, 0, negative, huge, non-numeric), line and order totals on `/cart` | `/cart`, `/shoppingcart/updatecartitem` |
 | cart-remove | remove a line, empty-cart state, move line to wishlist and back | `/cart`, `/shoppingcart/deletecartitem`, `/shoppingcart/moveitembetweencartandwishlist` |
 
-For another scope: derive 2-3 independent units yourself from the scope text, with one owner per mutable state; briefly say what each does.
+For another scope the scout derives the 2-3 independent units from the scope text, with one owner per mutable state.
 
-Launch one `qa-discoverer` per unit **in a single message**. Pass: base URL, unit key, the table row above as the scope brief (there is no areas.md), the QA root, and these limits: at most about 12 browser commands, do NOT place orders or touch checkout beyond reading, record curl replays for every endpoint, write only inside `<root>/01-discovery/units/<unit>/`. After each returns, require the `headed: true` evidence; a unit without it is re-run once, then recorded as a gap.
+Launch one `qa-discoverer` per unit **in a single message**. Pass: base URL, unit key, its row from `<root>/01-discovery/areas.md`, the QA root, and these limits: at most about 12 browser commands, do NOT place orders or touch checkout beyond reading, record curl replays for every endpoint, write only inside `<root>/01-discovery/units/<unit>/`. After each returns, require the `headed: true` evidence; a unit without it is re-run once, then recorded as a gap.
 
 Then invoke `qa-discovery-consolidator` (QA root passed). Expected: `<root>/01-discovery/{endpoints.json,flows.md,auth.md,open-questions.md,SUMMARY.md}` and the discovery page `<root>/visuals/02-discovery.html` (the discoverers render no page; the consolidator does).
 
-**Fallback (if a browser cannot open, the site is down, or discovery runs over time):** if `<root>/fallback/endpoints.json` exists, tell the user and use it: copy it and `auth.md` into `<root>/01-discovery/`, skip the consolidator, and from step 2 on tell the agents that the endpoint catalogue is the only discovery input (no SUMMARY.md). Say clearly in the final output that the fallback data was used.
+**Discovery fallback (if a browser cannot open, the site is down, or discovery runs over time):** if `<root>/fallback/endpoints.json` exists, tell the user and use it: copy it and `auth.md` into `<root>/01-discovery/`, skip the consolidator, and from step 2 on tell the agents that the endpoint catalogue is the only discovery input (no SUMMARY.md). Say clearly in the final output that the fallback data was used.
 
 **STOP - Gate 1.** Open `<root>/visuals/02-discovery.html` for the user. Keep it short: endpoints table (id, method, path, purpose, verified), surprises, and at most 3 numbered decisions with a recommendation. Wait.
 
