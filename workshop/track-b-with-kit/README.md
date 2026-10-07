@@ -29,7 +29,7 @@ npm ci && npx playwright install chromium
 bash scripts/preflight.sh                                  # 3 PASS
 cp ../path/to/track-b-with-kit/reference/cart.spec.ts tests/cart.api.spec.ts
 npx playwright test                                        # 6 tests, about 20 s
-bash scripts/sabotage.sh . tests/cart.api.spec.ts          # 3 caught
+bash scripts/sabotage.sh . tests/cart.api.spec.ts          # 3 caught + 1 survivor (mutant 4, on purpose)
 rm tests/cart.api.spec.ts
 ```
 

@@ -3,7 +3,6 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: '.',
   testMatch: '*.spec.ts',
-  testIgnore: 'draft/**', // the first-draft demo has its own config
   reporter: [['list']],
   workers: 2, // shared public host: stay modest
   retries: 0,

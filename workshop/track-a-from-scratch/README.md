@@ -37,7 +37,7 @@ Per stage, add what you need: `designer.md` before design, `writer.md` before wr
 ```bash
 cd reference && npm install && npx playwright install chromium && cd ..
 npx playwright test -c reference                       # 6 tests, about 20 s
-bash scripts/sabotage.sh reference cart.spec.ts        # expect 3 caught, 0 survivors
+bash scripts/sabotage.sh reference cart.spec.ts        # expect 3 caught + 1 survivor (mutant 4, on purpose; see conspect)
 ```
 
 ## Fallbacks in one line each

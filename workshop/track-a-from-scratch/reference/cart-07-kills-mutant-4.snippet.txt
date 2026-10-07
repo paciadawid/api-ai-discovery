@@ -1,0 +1,18 @@
+// Paste into cart.spec.ts, inside the describe block, after CART-06. It kills mutant 4.
+// Also add near the top, next to GOLFBALL:
+//   const CHRONOGRAPH = { id: 1, name: 'TRANSOCEAN CHRONOGRAPH', unitCents: 2411000 }; // $24,110.00
+
+  test('CART-07: two different products are two separate lines, each with its own price', async ({ shopper }) => {
+    await shopper.add(GOLFBALL.id, 2);
+    await shopper.add(CHRONOGRAPH.id, 1);
+
+    const cart = await shopper.cart();
+    expect(cart.lines, 'two products, two lines').toHaveLength(2);
+    // Find lines by what we put in, not by position: the page may list them in any order.
+    const golf = cart.lines.find((l) => l.unitCents === GOLFBALL.unitCents);
+    const watch = cart.lines.find((l) => l.unitCents === CHRONOGRAPH.unitCents);
+    expect(golf, 'golfball line').toMatchObject({ quantity: 2, totalCents: 2 * GOLFBALL.unitCents });
+    expect(watch, 'chronograph line').toMatchObject({ quantity: 1, totalCents: CHRONOGRAPH.unitCents });
+    expect(cart.subtotalCents).toBe(2 * GOLFBALL.unitCents + CHRONOGRAPH.unitCents);
+    expect(await shopper.badge(), 'units, not lines').toBe(3);
+  });

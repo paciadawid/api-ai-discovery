@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # "Prove the tests can fail": break the code under the tests on purpose and see which run notices.
-# Usage: bash sabotage.sh <project-dir-with-playwright-config> <spec-file-relative-to-that-dir>
+# Usage: [MUTANTS="1 4"] bash sabotage.sh <project-dir-with-playwright-config> <spec-file-relative-to-that-dir>
 #   Track A answer key:  bash scripts/sabotage.sh reference cart.spec.ts
 #   Track B own tests (run in the kit folder):  bash scripts/sabotage.sh . tests/<slug>.api.spec.ts
 # Each sabotage is applied to a COPY (<name>.mutN.spec.ts) that is deleted afterwards; the original is never edited.
@@ -17,11 +17,13 @@ names=(
   "delete endpoint URL is wrong"
   "parser can no longer see cart line inputs (attribute case)"
   "update ignores the new quantity"
+  "parser reads every line's prices from the FIRST line (wrong as soon as a cart has two products)"
 )
 exprs=(
   's#deletecartitem?cartItemId#deletecartitemX?cartItemId#'
   's#id="itemquantity(#id="itemQuantity(#'
   "s#newQuantity: String(quantity)#newQuantity: '1'#"
+  's#prices\[2 \* i\]#prices[0]#; s#prices\[2 \* i + 1\]#prices[1]#'
 )
 
 base_out=$(run "$spec"); base_code=$?
@@ -31,8 +33,8 @@ if [ $base_code -ne 0 ]; then
 fi
 
 survivors=0
-for i in 0 1 2; do
-  n=$((i + 1)); m="$base.mut$n.spec.ts"; mutants+=("$m")
+for i in 0 1 2 3; do
+  n=$((i + 1)); case " ${MUTANTS:-1 2 3 4} " in *" $n "*) ;; *) continue ;; esac; m="$base.mut$n.spec.ts"; mutants+=("$m")
   sed "${exprs[$i]}" "$src" > "$m"
   if cmp -s "$src" "$m"; then
     echo "mutant $n  NOT APPLICABLE  ${names[$i]} (pattern not found in your spec; break something equivalent by hand)"
