@@ -4,7 +4,7 @@
 
 Hi,
 
-In the workshop we go through the whole path of building API tests with AI help: narrow a feature, explore an API nobody documented, design and prioritise use cases, have the AI build the tests in a clean layered framework, then prove they can fail. You do it yourself, in pairs.
+In the workshop we go through the whole path of building API tests with AI help: narrow a feature, explore an API nobody documented, design and prioritise use cases, have the AI build the tests in a clean layered framework, run and debug them, then prove they can fail. You do it yourself, in pairs.
 
 **You do not need a laptop.** If you have none, join a pair; the decisions at each step are yours and that is the point of the workshop.
 

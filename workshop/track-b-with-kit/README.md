@@ -1,11 +1,11 @@
 # Track B: participants already have the kit
 
-Each pair has `participant-kit/` (eight agents, two commands, three skills, four rules, exporters, and tooling only: `tsconfig.json`, framework lint, visual pages, a Playwright config without projects, empty `tests/`). `/qa-workshop` has a **Map it** step (Postman export, newman run, Swagger) between Gate 1 and design. They drive with `/qa-workshop <slice>`; you steer and run the gates as a group. The kit ships no `src/`: on the first write the AI builds a layered framework from scratch (`src/config`, `api`, `domain`, `actors`, `matchers`, `fixtures`, and `tests/<area>/<capability>.api.spec.ts`), guided by the rules and the `writing-api-tests` skill. After every stage a visual page is rendered to `<root>/visuals/`.
+Each pair has `participant-kit/` (eight agents, two commands, three skills, four rules, exporters, and tooling only: `tsconfig.json`, framework lint, visual pages, a Playwright config without projects, empty `tests/`). `/qa-workshop` follows the canonical order of `/qa-cycle`: Setup, 1 Discovery, Gate 1, **Map it** (Postman export, newman run, Swagger), 2 Use cases, 3 Prioritize, Gate 2, 4 Write, 5 Run and debug, then the optional 6 Sabotage and 7 Strengthen (cut first). They drive with `/qa-workshop <slice>`; you steer and run the gates as a group. The kit ships no `src/`: on the first write the AI builds a layered framework from scratch (`src/config`, `api`, `domain`, `actors`, `matchers`, `fixtures`, and `tests/<area>/<capability>.api.spec.ts`), guided by the rules and the `writing-api-tests` skill. After every stage a visual page is rendered to `<root>/visuals/`.
 
 | File / folder | What it is |
 |---|---|
 | `conspect.md` | facilitator script: prep, kit tour, run sheet, what to say per block, the Gate 2 hold, fallback ladder, facts |
-| `slides.md` | Marp deck (28 short slides, speaker notes as HTML comments) |
+| `slides.md` | Marp deck (30 short slides, speaker notes as HTML comments) |
 | `participant-kit/` | the hand-out project; has its own `README.md` for participants, and `stage-cards.md` (the whole path with any AI) with `scripts/bundle.sh` (paste files into a chat) |
 | `participant-invite.md` | the message to send a few days before (laptop optional, any AI) |
 | `reference/layered/` | **Track B answer key and fallback** (never for participants): a finished layered framework (`src/`, `tests/`, `playwright.config.ts`), copied over a kit when the writer is slow or wrong; see its `README.md` |
@@ -34,7 +34,7 @@ cp -R ../path/to/track-b-with-kit/reference/layered/{src,tests,playwright.config
 npm run verify && npx playwright test                      # 1 gate + 9 cart + known-issue + spike + 16 unit
 ```
 
-Then open Claude Code in a fresh copy (reload so the agents are visible) and run `/qa-workshop` with a cart slice for the real thing: the first write builds the layers from scratch, so time it, including the sabotage steps 6 and 7. The old flat sabotage drill (`scripts/sabotage.sh` on `reference/cart.spec.ts`) is Track A only.
+Then open Claude Code in a fresh copy (reload so the agents are visible) and run `/qa-workshop` with a cart slice for the real thing: the first write builds the layers from scratch, so time it, including Run and debug and then the sabotage steps 6 and 7. The old flat sabotage drill (`scripts/sabotage.sh` on `reference/cart.spec.ts`) is Track A only.
 
 ## Not here
 
