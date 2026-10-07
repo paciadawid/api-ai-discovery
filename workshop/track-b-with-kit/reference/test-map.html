@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reference suite: what the six cart tests check</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --ink: #1c2330; --muted: #5d6879; --line: #dde2ea;
+    --given: #6b7280; --when: #2563eb; --then: #15803d; --bug: #b45309; --bugbg: #fff4e0;
+    --get: #0e7490; --post: #7c3aed;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); }
+  header { padding: 28px 32px 8px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  header p { margin: 0; color: var(--muted); }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px 32px 48px; }
+  h2 { margin: 32px 0 12px; font-size: 18px; }
+  code, .ep { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+
+  .overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .tile b { display: block; font-size: 22px; }
+  .tile span { color: var(--muted); font-size: 13px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: #eef1f6; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+  .m { display: inline-block; min-width: 42px; text-align: center; padding: 1px 6px; border-radius: 4px; color: #fff; font-size: 11px; font-weight: 700; }
+  .m.GET { background: var(--get); } .m.POST { background: var(--post); }
+
+  .matrix td, .matrix th { text-align: center; padding: 6px 8px; }
+  .matrix td:first-child, .matrix th:first-child { text-align: left; }
+  .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--when); }
+  .dot.setup { background: var(--given); }
+
+  .test { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin: 16px 0; overflow: hidden; }
+  .test > summary { cursor: pointer; padding: 14px 18px; display: flex; gap: 12px; align-items: baseline; list-style: none; }
+  .test > summary::-webkit-details-marker { display: none; }
+  .test > summary::before { content: "\25B8"; color: var(--muted); }
+  .test[open] > summary::before { content: "\25BE"; }
+  .uc { font-weight: 700; white-space: nowrap; }
+  .title { flex: 1; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--bugbg); color: var(--bug); border: 1px solid #f0cf98; white-space: nowrap; }
+  .body { padding: 4px 18px 18px; border-top: 1px solid var(--line); }
+
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 14px 0 6px; }
+  .step { border-radius: 8px; padding: 5px 10px; color: #fff; font-size: 12.5px; }
+  .step small { display: block; opacity: .85; font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+  .step.given { background: var(--given); } .step.when { background: var(--when); } .step.then { background: var(--then); }
+  .arrow { color: var(--muted); }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; }
+
+  ul.checks { margin: 8px 0 0; padding: 0; list-style: none; }
+  ul.checks li { padding: 4px 0 4px 26px; position: relative; }
+  ul.checks li::before { content: "\2713"; position: absolute; left: 4px; color: var(--then); font-weight: 700; }
+  ul.checks li.bug::before { content: "!"; color: var(--bug); }
+  .sub { margin: 14px 0 4px; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .variant { margin-top: 12px; padding: 10px 14px; background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; }
+  .variant h4 { margin: 0 0 4px; font-size: 14px; }
+  .gaps li { margin: 4px 0; }
+  footer { color: var(--muted); font-size: 13px; margin-top: 32px; }
+  .caught { color: var(--then); font-weight: 700; } .survived { color: #b91c1c; font-weight: 700; }
+  .hole { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 12px 16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Reference suite: what the six cart tests check</h1>
+  <p>Source: <code>reference/cart.spec.ts</code> (the answer key for the workshop room). 6 tests against bearstore-testsite.smartbear.com. Click a test to expand it.</p>
+</header>
+<main>
+
+  <div class="overview">
+    <div class="tile"><b>6</b><span>tests</span></div>
+    <div class="tile"><b>5</b><span>endpoints exercised</span></div>
+    <div class="tile"><b>1</b><span>known-issue test (CART-05)</span></div>
+    <div class="tile"><b>3 + 1</b><span>sabotage: 3 caught, 1 survives on purpose</span></div>
+  </div>
+
+  <h2>Endpoints</h2>
+  <table>
+    <tr><th>Name</th><th>Request</th><th>Used to</th></tr>
+    <tr><td>ADD</td><td><span class="m POST">POST</span> <span class="ep">/cart/addproduct/{id}/1</span> &nbsp;form <span class="ep">addtocart_{id}.EnteredQuantity</span></td><td>put a product in the cart</td></tr>
+    <tr><td>CART</td><td><span class="m GET">GET</span> <span class="ep">/cart</span></td><td>read the lines (id, quantity, unit price, line total) and the subtotal</td></tr>
+    <tr><td>COUNTERS</td><td><span class="m POST">POST</span> <span class="ep">/shoppingcart/cartsummary?cart=True&amp;wishlist=True&amp;compare=True</span></td><td>read the header badge (units in the cart)</td></tr>
+    <tr><td>UPDATE</td><td><span class="m POST">POST</span> <span class="ep">/shoppingcart/updatecartitem?sciItemId={line}&amp;isCartPage=True</span></td><td>change a quantity</td></tr>
+    <tr><td>DELETE</td><td><span class="m POST">POST</span> <span class="ep">/shoppingcart/deletecartitem?cartItemId={line}</span> (empty body, or IIS answers 411)</td><td>remove a line</td></tr>
+  </table>
+
+  <h2>Coverage matrix</h2>
+  <p class="legend"><span><span class="dot"></span> exercised by the behaviour under test or read to check the outcome</span> <span><span class="dot setup"></span> only used for setup</span></p>
+  <table class="matrix">
+    <tr><th>Test</th><th>ADD</th><th>CART</th><th>COUNTERS</th><th>UPDATE</th><th>DELETE</th></tr>
+    <tr><td>CART-01 first product</td><td><span class="dot"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td></td><td></td></tr><tr><td>CART-02 same product again</td><td><span class="dot"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td></td><td></td></tr><tr><td>CART-03 change quantity</td><td><span class="dot setup"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td></td></tr><tr><td>CART-04 remove the only line</td><td><span class="dot setup"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td></td><td><span class="dot"></span></td></tr><tr><td>CART-05 quantity 0</td><td><span class="dot setup"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td><td></td></tr><tr><td>CART-06 private cart</td><td><span class="dot setup"></span></td><td><span class="dot"></span></td><td></td><td></td><td><span class="dot"></span></td></tr>
+  </table>
+
+  <h2>Tests</h2>
+  <p class="legend">
+    <span><i style="background:var(--given)"></i>Given (setup)</span>
+    <span><i style="background:var(--when)"></i>When (behaviour under test)</span>
+    <span><i style="background:var(--then)"></i>Then (observation)</span>
+    <span>Every test gets its own visitor: a unique User-Agent, because the host keys a guest cart by IP + User-Agent.</span>
+  </p>
+
+  <details class="test" open>
+    <summary><span class="uc">CART-01</span><span class="title">A first product lands in the cart as ONE line, and every view agrees</span></summary>
+    <div class="body">
+      <div class="flow"><span class="step then">cart is empty<small>CART</small></span><span class="arrow">&rarr;</span><span class="step when">add 1 golfball<small>ADD</small></span><span class="arrow">&rarr;</span><span class="step then">read lines + subtotal<small>CART</small></span><span class="arrow">&rarr;</span><span class="step then">read badge<small>COUNTERS</small></span></div>
+      <ul class="checks"><li>Precondition proven: the parser works and the cart starts with 0 lines</li><li>ADD reports <code>success:true</code> (not just HTTP 200)</li><li>CART has exactly 1 line: quantity 1, unit $1.90, line total $1.90</li><li>Cart subtotal is $1.90</li><li>Header badge is 1</li></ul>
+    </div>
+  </details>
+  <details class="test">
+    <summary><span class="uc">CART-02</span><span class="title">Adding the same product again grows the existing line instead of adding a second one</span></summary>
+    <div class="body">
+      <div class="flow"><span class="step given">add 1 golfball<small>ADD</small></span><span class="arrow">&rarr;</span><span class="step when">add 3 more<small>ADD</small></span><span class="arrow">&rarr;</span><span class="step then">read lines<small>CART</small></span><span class="arrow">&rarr;</span><span class="step then">read badge<small>COUNTERS</small></span></div>
+      <ul class="checks"><li>One line, not two</li><li>Quantity 4, line total 4 &times; $1.90 = $7.60 (computed from the input)</li><li>Badge is 4: it counts units, not lines</li></ul>
+    </div>
+  </details>
+  <details class="test">
+    <summary><span class="uc">CART-03</span><span class="title">Changing the quantity reprices the SAME line and the subtotal</span></summary>
+    <div class="body">
+      <div class="flow"><span class="step given">add 1 golfball<small>ADD</small></span><span class="arrow">&rarr;</span><span class="step given">remember line id<small>CART</small></span><span class="arrow">&rarr;</span><span class="step when">set quantity to 5<small>UPDATE</small></span><span class="arrow">&rarr;</span><span class="step then">read lines + subtotal<small>CART</small></span><span class="arrow">&rarr;</span><span class="step then">read badge<small>COUNTERS</small></span></div>
+      <ul class="checks"><li>Still one line, with the same line id as before</li><li>Quantity 5, line total 5 &times; $1.90 = $9.50 (computed from the input, never copied from the page)</li><li>Subtotal is $9.50, badge is 5</li></ul>
+    </div>
+  </details>
+  <details class="test">
+    <summary><span class="uc">CART-04</span><span class="title">Removing the only line empties the cart everywhere</span></summary>
+    <div class="body">
+      <div class="flow"><span class="step given">add 2 golfballs<small>ADD</small></span><span class="arrow">&rarr;</span><span class="step given">line is visible to the parser<small>CART</small></span><span class="arrow">&rarr;</span><span class="step when">remove the line<small>DELETE</small></span><span class="arrow">&rarr;</span><span class="step then">read lines<small>CART</small></span><span class="arrow">&rarr;</span><span class="step then">read badge<small>COUNTERS</small></span></div>
+      <ul class="checks"><li>Guard against a vacuous pass: the parser saw exactly 1 line BEFORE the delete</li><li>After the delete: 0 lines and badge 0</li></ul>
+    </div>
+  </details>
+  <details class="test">
+    <summary><span class="uc">CART-05</span><span class="title">Quantity 0 answers HTTP 500 although the cart WAS changed</span><span class="tag">@known-issue</span></summary>
+    <div class="body">
+      <div class="flow"><span class="step given">add 2 golfballs<small>ADD</small></span><span class="arrow">&rarr;</span><span class="step when">set quantity to 0<small>UPDATE</small></span><span class="arrow">&rarr;</span><span class="step then">read lines<small>CART</small></span><span class="arrow">&rarr;</span><span class="step then">read badge<small>COUNTERS</small></span></div>
+      <ul class="checks"><li class=bug>What the server SAID: HTTP 500 with <code>Object reference not set to an instance of an object</code></li><li class=bug>What the server DID: the line is gone anyway, badge 0</li><li>The test pins today's buggy behaviour on purpose; when the host fixes it, the test fails and says so</li></ul>
+    </div>
+  </details>
+  <details class="test">
+    <summary><span class="uc">CART-06</span><span class="title">A visitor's cart is private; another visitor cannot see or delete its lines</span></summary>
+    <div class="body">
+      <div class="flow"><span class="step given">shopper adds 1 golfball<small>ADD</small></span><span class="arrow">&rarr;</span><span class="step given">other adds 2 golfballs<small>ADD</small></span><span class="arrow">&rarr;</span><span class="step when">other tries to delete shopper's line<small>DELETE</small></span><span class="arrow">&rarr;</span><span class="step then">read both carts<small>CART</small></span><span class="arrow">&rarr;</span><span class="step then">other deletes OWN line<small>DELETE</small></span><span class="arrow">&rarr;</span><span class="step then">read other cart<small>CART</small></span></div>
+      <ul class="checks"><li>The two visitors got different line ids; the other cart never lists mine</li><li>My cart is untouched: 1 line, same id, quantity 1; their line is untouched too (quantity 2)</li><li>Positive control: deleting a line you own DOES work. Without it, "my cart is untouched" also holds when delete does nothing at all (see mutant 1 in the first draft)</li></ul>
+    </div>
+  </details>
+
+  <h2>Can these tests fail? (sabotage)</h2>
+  <p><code>bash scripts/sabotage.sh reference cart.spec.ts</code> breaks the helper code one way at a time and runs the suite.</p>
+  <table>
+    <tr><th>#</th><th>What we break</th><th>Result</th><th>Tests that notice</th></tr>
+    <tr><td>1</td><td>delete call goes to a wrong URL (delete does nothing)</td><td><span class="caught">caught</span></td><td>CART-04, CART-06</td></tr><tr><td>2</td><td>cart-page reader cannot see the lines (cart always looks empty)</td><td><span class="caught">caught</span></td><td>all 6</td></tr><tr><td>3</td><td>update always sends quantity 1 (the change is ignored)</td><td><span class="caught">caught</span></td><td>CART-03, CART-05</td></tr><tr><td>4</td><td>price reader gives every line the FIRST line's price (wrong with two products)</td><td><span class="survived">SURVIVED</span></td><td>none</td></tr>
+  </table>
+
+  <h2>What no test checks yet</h2>
+  <div class="hole">
+    <b>Two different products in one cart (mutant 4).</b> Every test has at most one line per cart, so a price reader that is right for line 1 and wrong for line 2 goes unnoticed. The test that closes the hole is <code>reference/cart-07-kills-mutant-4.snippet.txt</code>: 2 golfballs ($1.90) and 1 chronograph ($24,110.00) in the same cart, each line with its own quantity and price, subtotal $24,113.80 (2 &times; $1.90 + $24,110.00), badge 3.
+  </div>
+  <ul class="gaps">
+    <li>Quantity boundaries other than 0: negative, very large, non-numeric (the host answers 502 for non-numeric).</li>
+    <li>Update or delete of one line while a second line exists.</li>
+    <li>Logged-in carts, stock limits, coupons, shipping and tax.</li>
+  </ul>
+
+  <footer>Hand-made from <code>reference/cart.spec.ts</code> and the sabotage run of 2026-10-07. If the spec changes, update this page.</footer>
+</main>
+</body>
+</html>
