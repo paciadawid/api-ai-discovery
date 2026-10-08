@@ -50,5 +50,5 @@ Same nine assertion rules, cut order and fallback ladder in both tracks. Only se
 
 - One full rehearsal per track, end to end, on a participant-like laptop.
 - Morning of: the reference suite, the sabotage script and the Map it check of the track you teach (in its conspect, section 1).
-- Render slides: `npx @marp-team/marp-cli <track>/slides.md --html --allow-local-files`. The title slide of Track B reads `img/` (local, gitignored); the committed `slides.html` embeds those images.
+- Render slides: `npx @marp-team/marp-cli <track>/slides.md --html`. Images in the slides are embedded as base64, so there is no image folder.
 - The repo is public: https://github.com/paciadawid/api-ai-discovery. Facilitator conspects, `slides.md` and `_archive/` are gitignored and stay local; the rendered `slides.html` is committed and contains the speaker notes (press P for the presenter view).

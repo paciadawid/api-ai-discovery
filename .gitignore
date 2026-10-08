@@ -13,9 +13,6 @@ blob-report/
 .env.*
 !.env.example
 
-# slide-only images (slides.html embeds them)
-workshop/*/img/
-
 # facilitator material kept local
 workshop/*/conspect.md
 workshop/*/slides.md

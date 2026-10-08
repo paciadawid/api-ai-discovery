@@ -16,10 +16,10 @@ Each pair has `participant-kit/` (eight agents, two commands, three skills, four
 ## Render the slides
 
 ```bash
-npx @marp-team/marp-cli slides.md --html --allow-local-files
+npx @marp-team/marp-cli slides.md --html
 ```
 
-The title slide uses `img/` (the HUSTEF logo and a speaker photo). That folder is local and gitignored; the committed `slides.html` has the images embedded.
+The title slide images (HUSTEF logo, speaker photo) are embedded in `slides.md` as base64, so there is no image folder.
 
 ## Hand out
 
