@@ -7,7 +7,7 @@ Claude Code users can run `/qa-cycle https://bearstore-testsite.smartbear.com <s
 1. Each stage reads files and writes ONE file (card 4, Write, writes the framework and spec files it names). The files are the handoff, so a stalled pair can pick up the next stage from the facilitator's copy.
 2. To give an AI your files, paste them with `bash scripts/bundle.sh <file>... | pbcopy` (Windows: `| clip`, Linux: `| xclip -selection clipboard`), then paste into the chat. An AI that reads files itself can just be pointed at the paths.
 3. Save the AI's answer in the file named on the card, then run the **Check**. A card is done when the check passes, not when the AI sounds sure.
-4. Optional, one second: render the stage as a page with `node scripts/visualize.mjs <stage> --root <root>` (or `npm run visualize -- <stage> --root <root>`) and open the file it prints in `<root>/visuals/`. Stages: after Gate 1 `discovery` (`02-discovery.html`), card 2 `usecases` (`03-usecases.html`), card 3 `selected` (`04-selected.html`), card 4 `tests` (`05-tests.html`), card 5 `run` (`06-run.html`), card 6 `sabotage` (`07-sabotage.html`); `index.html` links them all.
+4. Optional, one second: render the stage as a page with `node scripts/visualize.mjs <stage> --root <root>` (or `npm run visualize -- <stage> --root <root>`) and open the file it prints in `<root>/visuals/`. Stages: after Gate 1 `discovery` (`02-discovery.html`), card 2 `usecases` (`03-usecases.html`), card 3 `selected` (`04-selected.html`), card 4 `tests` (`05-tests.html`), card 5 `run` (`06-run.html`), card 6 `sabotage` (`07-sabotage.html`), card 7 `strengthen` (`08-strengthen.html`); `index.html` links them all.
 5. Card numbers are the step numbers of `/qa-cycle`, in its order: 1 Discovery, 2 Use cases, 3 Prioritize, 4 Write, 5 Run and debug, 6 Sabotage, 7 Strengthen. Gate 1, Map it and Gate 2 sit between them without a number, as in the command. The command's Scope gate (after its scout, before any discovery browser opens) corresponds to the narrowing you do before card 1: pick your slice and the one or two units you will explore, then start card 1.
 
 Setup once: pick a slice slug (for example `qty`) and run `mkdir -p qa/workshop/qty/01-discovery`. Below, `<root>` means `qa/workshop/qty`.
@@ -153,7 +153,8 @@ Red (a test fails) is good. Green means a survivor: a test that protects nothing
 ```text
 Attached: my spec and this sabotage: <what you broke>. It SURVIVED (the tests stayed green). Which assertion is the
 weakest link, and what is missing (a positive control? a precondition? a second view)? Show
-the smallest change that makes a test fail under this sabotage.
+the smallest change that makes a test fail under this sabotage, or the code change that removes the weak spot.
+Do not write tests of the framework classes themselves.
 ```
 
 **Check:** every sabotage turns at least one test red, or you can explain in one sentence why a survivor is acceptable.

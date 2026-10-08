@@ -7,5 +7,6 @@ export const STAGES = [
   { key: 'tests', nn: '05', title: 'Test map', hint: 'What each test does and checks (tests/, src/, 04-coverage.md).', mod: './stages/tests.mjs' },
   { key: 'run', nn: '06', title: 'Run report', hint: 'Verdict, metrics, improvements, bugs (05-run-report.md).', mod: './stages/run.mjs' },
   { key: 'sabotage', nn: '07', title: 'Sabotage: do the tests catch bugs?', hint: 'Mutation heatmap and survivors (06-sabotage.json / report).', mod: './stages/sabotage.mjs' },
+  { key: 'strengthen', nn: '08', title: 'Strengthen: what improved', hint: 'Gaps closed, new tests, framework changes, before/after (07-strengthen-report.md, 06-sabotage.json).', mod: './stages/strengthen.mjs' },
 ];
 export const stageByKey = (k) => STAGES.find((s) => s.key === k);

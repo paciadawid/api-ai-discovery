@@ -25,7 +25,7 @@ export default function render(ctx) {
   const smallSel = tables.filter((t) => t !== scoring && col(t, /uc id/i) >= 0 && /selected/i.test(t.heading)).flatMap((t) => t.rows.map((r) => UC_ID.exec(r[col(t, /uc id/i)])?.[0]).filter(Boolean));
   if (!baseSelected.size) smallSel.forEach((id) => baseSelected.add(id));
   const sel = new Set([...baseSelected, ...added.filter((id) => rows.some((r) => r.id === id))]);
-  rows.forEach((r) => { r.titleFull = titles.get(r.id) || r.title; r.chosen = sel.has(r.id); r.addedAtGate = r.chosen && !baseSelected.has(r.id); });
+  rows.forEach((r) => { r.titleFull = titles.get(r.id) || r.title; r.unit = units.get(r.id) || ''; r.chosen = sel.has(r.id); r.addedAtGate = r.chosen && !baseSelected.has(r.id); });
 
   const unitsList = [...new Set(rows.map((r) => units.get(r.id)).filter(Boolean))];
   const overview = tiles([
@@ -64,12 +64,19 @@ function chart(rows) {
   const max = Math.max(...rows.map((r) => r.score), 1);
   const lastSel = rows.map((r) => r.selected).lastIndexOf(true);
   const out = [`<p class="legend"><span>${chip('SELECTED', 'ok')} goes into the next stage</span><span>${chip('deferred', 'neutral')} scored but not selected</span><span class="muted">score = (2 x impact + likelihood + coverage value) / (cost + stability risk)</span></p>`];
+  const hasF = rows.some((r) => r.factors.some(Boolean));
+  if (hasF) out.push('<dl class="factors"><dt>I</dt><dd><b>Impact</b>: business damage if this breaks. Counts double. 5 = severe.</dd><dt>L</dt><dd><b>Likelihood</b>: how likely it is to break (complex state, validation, dependencies). 5 = very likely.</dd><dt>C</dt><dd><b>Coverage value</b>: how much other behaviour this test implicitly proves. 5 = a lot.</dd><dt>K</dt><dd><b>Cost</b>: effort to write and maintain, including data and cleanup. 5 = expensive.</dd><dt>S</dt><dd><b>Stability risk</b>: chance of flaky results (shared data, rate limits, varying responses). 5 = flaky.</dd></dl>');
+  const fh = [['I', 'Impact'], ['L', 'Likelihood'], ['C', 'Coverage value'], ['K', 'Cost'], ['S', 'Stability risk']];
+  const head = ['#', 'Use case', 'What it proves', 'Unit', ...(hasF ? fh.map(([k, n]) => `<span title="${n}">${k}</span>`) : []), 'Score', 'State'];
+  const span = head.length;
+  const body = [];
   rows.forEach((r, i) => {
-    const f = r.factors.some(Boolean) ? ` (I${r.factors[0]} L${r.factors[1]} C${r.factors[2]} K${r.factors[3]} S${r.factors[4]})` : '';
     const state = r.chosen ? chip(r.addedAtGate ? 'SELECTED (gate)' : 'SELECTED', 'ok') : chip('deferred', 'neutral', r.result);
-    out.push(`<div class="rank" title="${esc(r.arith + f)}"><span>#${r.rank}</span><b>${esc(r.id)}</b><span class="t" title="${esc(plain(r.titleFull))}">${esc(plain(r.titleFull))}</span>${bar(r.score, max, r.score.toFixed(2), r.chosen ? 'sel' : 'def')}<span>${state}</span></div>`);
-    if (i === lastSel && i < rows.length - 1) out.push(`<div class="cut">-- cut: ${rows.slice(0, i + 1).filter((x) => x.selected).length} selected above this line, the rest are deferred --</div>`);
+    const fcells = hasF ? r.factors.map((v) => `<td class="n">${esc(v)}</td>`).join('') : '';
+    body.push(`<tr class="${r.chosen ? 'sel' : 'def'}"><td class="n">${r.rank}</td><td><b>${esc(r.id)}</b></td><td>${esc(plain(r.titleFull))}</td><td>${r.unit ? chip(r.unit, 'info') : ''}</td>${fcells}<td class="sc" title="${esc(r.arith)}">${bar(r.score, max, r.score.toFixed(2), r.chosen ? 'sel' : 'def')}${r.arith ? `<div class="small muted">${esc(r.arith)}</div>` : ''}</td><td>${state}</td></tr>`);
+    if (i === lastSel && i < rows.length - 1) body.push(`<tr class="cutrow"><td colspan="${span}">cut: ${rows.slice(0, i + 1).filter((x) => x.selected).length} selected above this line, the rest are deferred</td></tr>`);
   });
+  out.push(`<div class="scroll"><table class="rt"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${body.join('')}</tbody></table></div>`);
   return out.join('');
 }
 

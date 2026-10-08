@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "test": "playwright test",
+    "report": "playwright show-report",
     "export:postman": "node scripts/export-postman.mjs",
     "export:openapi": "node scripts/export-openapi.mjs",
     "swagger": "node scripts/swagger-server.mjs",

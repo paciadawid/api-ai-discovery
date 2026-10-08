@@ -38,3 +38,8 @@ src/config     (env.ts)         the ONLY place that reads process.env
 - Do not add a layer, class or abstraction that nothing uses yet. Add an actor, API class or fixture when a use case needs it.
 - Playwright projects are defined in `playwright.config.ts`. Every spec is matched by exactly one project; a spec in a new area folder needs its own project entry. Specs that must not count towards the pass/fail gate (known defects, spikes) get their own spec file and project.
 - The facts of the current target (quirks, isolation, credentials, how to set up projects) are in the root `CLAUDE.md`, not here. On the first run `src/` does not exist: create the layers in the order of the skill `writing-api-tests`, section Bootstrap.
+
+## Sabotage and strengthening improve the kit, they do not add tests of framework classes
+- Every test in this kit is a live use-case test (`tests/<area>/<capability>.api.spec.ts`). No offline or unit tests of matchers, parsers, actors or fixtures, no stubbed or in-memory guests, no builders of fake pages or replies, no Playwright project that runs without the network, no test-only code under `src/`.
+- A sabotage survivor is closed in one of three ways: (1) strengthen a live test (a positive control, a plain `expect` next to a matcher, a value computed from the input); (2) improve the framework code (make a guard throw, make a teardown prove its result, simplify a matcher so it cannot ignore a field, or delete dead code); (3) accept it as DEFENSIVE when the mutated code is a guard no real reply can reach, and say so in the report.
+- Never kill a mutation with a test written only for that mutation. "All mutations killed" must not be reached by tests that exist for the mutations, so an honest DEFENSIVE survivor is preferred.

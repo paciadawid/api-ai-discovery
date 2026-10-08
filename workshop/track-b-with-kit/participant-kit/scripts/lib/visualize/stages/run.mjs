@@ -63,7 +63,7 @@ function deltaOf(before, after) {
   return parts.join('; ');
 }
 
-function metricCards(sec) {
+export function metricCards(sec) {
   const t = parseTables(sec.body)[0];
   if (!t) return '';
   const b = col(t, /before/i);
@@ -103,7 +103,7 @@ function improvements(sec) {
   return `<div class="cards">${cards.join('')}</div>${ba ? `<div class="banner"><p>${inline(ba[0].trim())}</p></div>` : ''}`;
 }
 
-function categoryCard(name, s) {
+export function categoryCard(name, s) {
   const t = parseTables(s.body)[0];
   let items;
   if (t) {
@@ -111,6 +111,7 @@ function categoryCard(name, s) {
   } else {
     items = parseList(s.body).map((i) => `<div class="item">${inline(i.text)}</div>`);
   }
+  if (!items.length && /^\W*nothing( changed)?\b/i.test(plain(s.body))) return `<div class="cardbox"><h3>${esc(name)} ${chip('nothing changed', 'neutral')}</h3>${paragraphs(s.body).map((p) => `<p>${inline(p)}</p>`).join('')}</div>`;
   if (!items.length) return `<div class="cardbox"><h3>${esc(name)}</h3>${unreadable(`items of "${name}"`, s.body)}</div>`;
   return `<div class="cardbox"><h3>${esc(name)} ${chip(`${items.length} change${items.length === 1 ? '' : 's'}`, 'info')}</h3>${items.join('')}</div>`;
 }
@@ -124,7 +125,7 @@ function bugsPart(sec) {
   return `${lead}<div class="cards">${cards.join('')}</div>`;
 }
 
-function listPart(sec) {
+export function listPart(sec) {
   const items = parseList(sec.body);
   return items.length ? ul(items.map((i) => inline(i.text + (i.children.length ? ' ' + i.children.map((c) => c.text).join('; ') : '')))) : mdBlock(sec.body);
 }
