@@ -1,54 +1,64 @@
-# Discovery: functional areas (Stage 1a)
+# Areas (scope mode: cart)
 
-Target: https://bearstore-testsite.smartbear.com (SmartStore, ASP.NET MVC 5.2 on IIS 10). No documented API; the HTTP traffic behind the UI is the API (server-rendered pages, form posts, AJAX fragments).
+Base URL: https://bearstore-testsite.smartbear.com/ (SmartStore). Scope: `cart` only. One area, 5 units.
+
+## Units
+
+| area | unit key | entry URLs | needs login | owns state | what to find out | effort |
+|---|---|---|---|---|---|---|
+| cart | cart-add | /watches, /certina-ds-podium-big-size (regular product), /25-virtual-gift-card (gift card with recipient fields), /cart | no | cart lines created by add (own session cart) | How "Add to cart" works from a product page (and category quick add if present): request, quantity at add, adding the same product twice (merge vs new line), gift card form fields and their validation, failure messages (HTTP 200 + success:false), cart counter/mini-cart after add | M |
+| cart-quantity | cart-quantity | /cart (qty +/- buttons and qty textbox per line) | no | quantity of lines in its own session cart (seeded by adding 1-2 products) | How a quantity change is sent and answered: +/-, typed value, 0, negative, non-numeric, very large, stock/max-per-order limits; line total and subtotal refresh; messages | M |
+| cart-remove | cart-remove | /cart (the "x" remove link per line) | no | removal of lines in its own session cart (seeded by adding products) | How a line is removed: request/response, removing one of several lines, removing the last line (empty-cart state), removing an already-removed or unknown line id, effect on counters | S |
+| cart-codes | cart-codes | /cart (panels "I have a discount code" and "I have a gift card") | no | applied discount/gift-card code on its own session cart | How a discount code and a gift card code are applied and removed: request shape, messages for empty/invalid/unknown codes, whether valid codes exist publicly (do not guess at scale), effect on totals | M |
+| cart-totals-shipping | cart-totals-shipping | /cart (totals table: Subtotal, Shipping, Tax, Total; "Estimate shipping" panel) | no | estimated shipping selection / country-zip in its own session cart | How totals are computed after add/qty changes (subtotal x qty, shipping, tax, total, rounding, currency switch USD), how "Estimate shipping" is requested and answered, free-shipping behaviour (e.g. gift cards), the Checkout button gate (observe only) | M |
 
 ## Areas
 
-| area key | entry URLs | needs login | owns state | what to find out |
-|---|---|---|---|---|
-| auth | /login?returnUrl=, /register, /customer/passwordrecovery, /logout, /customer/info, /customer/addresses, /customer/orders | yes (account pages); login/register are anonymous | Customer session cookies, registered accounts, customer profile/addresses, order history (read only). Owns login/logout and any account it registers (must clean up or reuse BEARSTORE_EMAIL) | Login POST contract (fields, status, redirect, cookies set), invalid creds, returnUrl handling, logout, register validations, password recovery, account page access when anonymous vs logged in, profile/address update |
-| catalog | /, /books, /furniture, /sports, /gaming, /watches, /gift-cards, /soccer, /basketball, /golf, /jackets, /shoes, /trousers, /sunglasses, product detail pages (slug URLs), /recentlyviewedproducts, /newproducts (What's New) | no | none (read only; anonymous sessions only. Recently viewed is per-visitor cookie state, written implicitly by product views) | Category listing contract (paging, sorting, filters, view modes via query string), product detail data, 404 behaviour for unknown slugs, recently viewed, what's new, currency switch (USD) |
-| search | /search?q=, instant search endpoint behind the header box (GET form to /search) | no | none (anonymous only) | Search params (q, filters, price range, sorting, paging), empty/short/special-char queries, instant search endpoint and response format, injection/encoding edge cases |
-| cart-compare-wishlist | /cart, /wishlist, /compareproducts, add-to-cart / add-to-wishlist / add-to-compare AJAX endpoints from product pages, /checkout (read only, do not place order) | no (cart, wishlist, compare and checkout entry all work anonymously; confirmed by discovery) | Shopping cart, wishlist, compare list (all three). Uses own anonymous session first; logs in within its own browser session when needed | Add / update quantity / remove contracts, cart totals, coupon and gift card fields, estimate shipping, quantity validation (0, negative, huge), compare limit, wishlist persistence, checkout entry gating |
-| content-contact-newsletter | /contactus, /blog (404 though linked), /shippinginfo, /paymentinfo, /aboutus, /disclaimer, /privacyinfo, /conditionsofuse, newsletter form in footer (subscribe/unsubscribe, field NewsletterEmail, radios optionsRadios) | no | Contact form submissions (messages sent), newsletter subscription entries for test email addresses it invents (cleanup via unsubscribe) | Static page availability and status codes, contact form POST contract and validation, newsletter subscribe/unsubscribe contract and validation, blog list/detail, response headers |
+- **cart** - Everything a visitor can do on the shopping basket: add products, change quantities, remove lines, apply discount / gift-card codes, and check totals and shipping estimates. Units: `cart-add`, `cart-quantity`, `cart-remove`, `cart-codes`, `cart-totals-shipping`. Total effort: L.
 
-Content page slugs were corrected after discovery to the real footer hrefs (the hyphenated guesses /shipping-returns, /payment-info, /about-us, /privacy, /conditions-of-use return 404).
+## Excluded (outside scope)
 
-## Observed auth behaviour
+- wishlist (/wishlist, "Add to List"): keeps its own state (per visitor/user list); not browsed.
+- compare (/compareproducts, "Compare"): keeps its own state; not browsed.
+- checkout (Checkout button, steps Address, Shipping, Payment, Confirm, Complete): would place real orders and requires address/payment data; destructive on a shared public host.
+- auth (/login, registration): no new accounts on the shared host; the cart is fully usable anonymously, so no login is needed for the cart scope.
+- catalog browse/search, product reviews, contact, newsletter, content pages (/aboutus, /blog, /shippinginfo, ...): other areas, not part of the cart scope.
 
-- Login form: GET /login?returnUrl=%2F (header "Log in" link carries returnUrl). Form is `POST /login`, fields `UsernameOrEmail`, `Password`, `RememberMe` (checkbox plus hidden false). No `__RequestVerificationToken` field was found in the raw login HTML (verify when probing the POST).
-- Related links: Register at /register?returnUrl=%2f, Forgot password at /customer/passwordrecovery.
-- Cookies on first anonymous visit: only `SMARTSTORE.VISITOR` (GUID, path /, domain bearstore-testsite.smartbear.com). Via `curl -i`: `Set-Cookie: SMARTSTORE.VISITOR=...; expires=+1 year; path=/; secure; HttpOnly; SameSite=Lax`. The browser `cookie-list` showed it, so it is the only cookie before login.
-- Server headers: `Microsoft-IIS/10.0`, `X-AspNetMvc-Version: 5.2`, `X-AspNet-Version: 4.0.30319`, `X-Powered-By: ASP.NET` (version disclosure, worth a finding).
-- Login was NOT performed in this scouting pass: `BEARSTORE_EMAIL` / `BEARSTORE_PASSWORD` are not set in the scout's environment, and `tests/support/auth.ts` does not exist yet. Session cookie names after login are therefore unknown; the auth discoverer must record them.
+## Shared rules
 
-## Excluded
+- No credentials are needed for this scope. If ever needed, only via env var names `BEARSTORE_EMAIL` / `BEARSTORE_PASSWORD`; never read or print `.env`.
+- Every unit runs in its OWN headed browser session (`-s=qa-<unit-key>`, `open ... --headed`); each session is its own anonymous cart (the host keys a guest cart by IP + User-Agent, so replays with curl must use a unique User-Agent and their own cookie jar).
+- No destructive actions: do not click Checkout past the cart, place no orders, create no accounts, do not subscribe to the newsletter.
+- Clean up what you create: remove cart lines and applied codes before closing the session.
+- Modest volume on a shared public host; business failures arrive as HTTP 200 + `success:false`; body-less POST needs `data: ''`; send `X-Requested-With: XMLHttpRequest`.
 
-- Placing a real order (checkout confirm/payment): destructive, creates orders that cannot be deleted. Checkout may be explored read-only up to the confirmation step.
-- Deleting or deactivating accounts, changing the password of the shared BEARSTORE_EMAIL account: would break parallel agents and later test runs.
-- Load / stress / DoS style testing and security scanning of the shared public demo host: out of scope for functional API QA.
-- Admin back office (if any exists): no credentials, not linked from the storefront.
-- Gift card purchase flows that trigger email delivery: side effects outside the system.
+## Auth probe
 
-## Shared rules for discoverers
+- Login form: /login (cart page links to `/login?returnUrl=%2Fcart`). Not needed for the cart.
+- Cookies seen for an anonymous visitor: `SMARTSTORE.VISITOR` (HttpOnly, Secure, SameSite=Lax, 1-year), `ASP.NET_SessionId` (HttpOnly, SameSite=Lax), `SmartStore.RecentlyViewedProducts` (not HttpOnly). The guest cart is tied to these cookies.
 
-- Credentials only via env vars `BEARSTORE_EMAIL` and `BEARSTORE_PASSWORD` (defaults in `tests/support/auth.ts` once it exists). Never write secrets into artifacts.
-- Browser: your own session `-s=qa-<area key>`, always `open ... --headed`, confirm `headed: true` with `npx playwright-cli list`, close the session when done.
-- State ownership is strict: only the owning area mutates cart, wishlist, compare, profile, subscriptions, contact messages. Others use anonymous sessions and read only.
-- Any session needing login logs in inside its own browser session; do not share cookies between areas.
-- No destructive actions (no orders, no account deletion, no password changes on the shared account).
-- Clean up what you create: remove cart/wishlist/compare items, unsubscribe test newsletter emails, delete or abandon test registrations only via supported UI.
-- Use obviously fake data (e.g. `qa-<area>-<timestamp>@example.com`).
-- Write nothing under `tests/`.
+## Scout observations
+
+- Empty /cart shows heading "Shopping cart" and a step bar (Cart, Address, Shipping, Payment, Confirm, Complete).
+- With one line (Certina DS Podium Big Size, $479.00): per line image, SKU, "Arrives" date, "x" remove link, a second icon link, price, qty box with -/+ buttons, line total; collapsible panels "I have a discount code", "I have a gift card", "Estimate shipping"; totals Subtotal / Shipping / Tax / Total; buttons "Continue shopping" and "Checkout".
+- Gift card products ($10/$25/$50/$100 Virtual Gift Card) have extra recipient/sender fields before Add to cart and show "Free shipping".
+- The scout added one line and removed it again; its cart was left empty and the session closed.
 
 ## Browser evidence
 
-Output of `npx playwright-cli list` during scouting:
+Command: `./node_modules/.bin/playwright-cli list` (right after `open https://bearstore-testsite.smartbear.com/ --headed`):
 
 ```
+### Browsers
 - qa-scout:
   - status: open
   - browser-type: chrome
   - user-data-dir: <in-memory>
   - headed: true
 ```
+
+## Scope decision
+- Asked: All units
+- Explored units: cart-add, cart-quantity, cart-remove, cart-codes, cart-totals-shipping
+- Not explored (user's choice): none
+- Refinements: 0

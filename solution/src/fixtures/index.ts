@@ -1,71 +1,44 @@
-import { test as base, type PlaywrightWorkerArgs } from '@playwright/test';
-import { Shopper } from '@/actors/shopper';
-import { Visitor } from '@/actors/visitor';
-import { StoreApi } from '@/api/store-api';
-import { env, type Credentials } from '@/config/env';
-import { uniqueUserAgent, useCaseOf } from '@/domain/visitor-identity';
+import { test as base, request as pw } from '@playwright/test';
+import { CartApi } from '@/api/cart.api';
+import { HttpClient } from '@/api/http-client';
+import { Guest } from '@/actors/guest';
+import { env } from '@/config/env';
+import { userAgentFor } from '@/domain/identity';
+import { expect } from '@/matchers';
+export { expect };
 
-export interface ShopperOptions {
-  /** Force an exact User-Agent (only the isolation probe needs this). */
-  userAgent?: string;
-  /** Skip the warm-up request, so the very first call is the one under test. */
-  cookieless?: boolean;
+// Every guest is brand new: own request context (own cookie jar), unique User-Agent (the host keys the cart by IP + User-Agent), own cart.
+// The cart is emptied (and proven empty) after the test, also when the test body threw. If the body threw, that error is the one
+// that surfaces and a cleanup failure is only logged; if the body passed, a cleanup failure fails the test (a cart left behind is a defect of the suite).
+async function withCleanup(guest: Guest, role: string, dispose: () => Promise<void>, use: (guest: Guest) => Promise<void>): Promise<void> {
+  let bodyFailure: { error: unknown } | undefined;
+  let cleanupFailure: { error: unknown } | undefined;
+  try {
+    await use(guest);
+  } catch (error) {
+    bodyFailure = { error };
+  }
+  try {
+    await guest.emptiesCart();
+    // The proof lives here, outside emptiesCart: a teardown that deletes nothing leaves lines and fails this check.
+    expect(await guest.cart(), `teardown: the cart of guest ${role} is empty after removing every line`).toHaveExactlyTheLines([]);
+  } catch (error) {
+    cleanupFailure = { error };
+  }
+  await dispose();
+  if (bodyFailure) {
+    if (cleanupFailure) console.warn(`cleanup of the cart of guest ${role} failed: ${String(cleanupFailure.error)}`);
+    throw bodyFailure.error;
+  }
+  if (cleanupFailure) throw cleanupFailure.error;
 }
 
-interface Fixtures {
-  /** Creates further independent shoppers; every one is emptied and disposed after the test. */
-  newShopper: (options?: ShopperOptions) => Promise<Shopper>;
-  /** A brand-new anonymous shopper with a private cart. */
-  shopper: Shopper;
-  /** A second, independent shopper (for "someone else's data" scenarios). */
-  otherShopper: Shopper;
-  /** A first-time visitor browsing the storefront. Signed out and disposed after the test. */
-  visitor: Visitor;
-  /** The QA customer account from .env. Only resolved by tests that ask for it. */
-  customer: Credentials;
+async function provideGuest(role: string, testId: string, use: (guest: Guest) => Promise<void>): Promise<void> {
+  const ctx = await pw.newContext({ baseURL: env.baseUrl, userAgent: userAgentFor(testId, role) });
+  await withCleanup(new Guest(new CartApi(new HttpClient(ctx))), role, () => ctx.dispose(), use);
 }
 
-type PlaywrightRunner = PlaywrightWorkerArgs['playwright'];
-
-const openStore = async (playwright: PlaywrightRunner, baseURL: string | undefined, userAgent: string) => {
-  const context = await playwright.request.newContext({ baseURL, userAgent });
-  return { context, store: new StoreApi(context) };
-};
-
-export const test = base.extend<Fixtures>({
-  newShopper: async ({ playwright, baseURL }, use, testInfo) => {
-    const opened: { shopper: Shopper; dispose: () => Promise<void> }[] = [];
-    try {
-      await use(async (options = {}) => {
-        const { context, store } = await openStore(playwright, baseURL, options.userAgent ?? uniqueUserAgent(useCaseOf(testInfo.title)));
-        const shopper = new Shopper(store);
-        opened.push({ shopper, dispose: () => context.dispose() });
-        if (!options.cookieless) await context.get('/', { maxRedirects: 0 }); // first request hands out the visitor cookie
-        return shopper;
-      });
-    } finally {
-      for (const { shopper, dispose } of opened) {
-        await shopper.emptiesEverything();
-        await dispose();
-      }
-    }
-  },
-
-  shopper: async ({ newShopper }, use) => use(await newShopper()),
-  otherShopper: async ({ newShopper }, use) => use(await newShopper()),
-
-  visitor: async ({ playwright, baseURL }, use, testInfo) => {
-    const { context, store } = await openStore(playwright, baseURL, uniqueUserAgent(useCaseOf(testInfo.title)));
-    const visitor = new Visitor(store);
-    try {
-      await use(visitor);
-    } finally {
-      await visitor.signsOut();
-      await context.dispose();
-    }
-  },
-
-  customer: async ({}, use) => use(env.customer()),
+export const test = base.extend<{ guest: Guest; otherGuest: Guest }>({
+  guest: async ({}, use, testInfo) => provideGuest('a', testInfo.testId, use),
+  otherGuest: async ({}, use, testInfo) => provideGuest('b', testInfo.testId, use),
 });
-
-export { expect } from '@/matchers';

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Run report: QA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="vis-stage" content="run">
+<meta name="vis-title" content="Run report">
+<meta name="vis-generated" content="2026-10-08 11:46 UTC">
+<meta name="vis-headline" content="all passing; All 5 of 5 live gate tests pass and none of the 5 selected use cases is red; no application bugs found. Sabotage killed 14 of 24 mutations on the…">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2330;--muted:#5d6879;--line:#dde2ea;--given:#5b6472;--when:#2563eb;--then:#15803d;--bug:#92400e;--bugbg:#fff4e0;--ok:#166534;--okbg:#e6f6ec;--bad:#991b1b;--badbg:#fdeaea;--warn:#92400e;--warnbg:#fff4e0;--info:#1e40af;--infobg:#e8effd;
+--get:#0e7490;--post:#7c3aed;--put:#b45309;--delete:#b91c1c;--patch:#4d7c0f}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header.top{padding:24px 32px 8px;max-width:1100px;margin:0 auto}
+header.top h1{margin:0 0 4px;font-size:26px}
+header.top .meta{color:var(--muted);font-size:13px;margin:2px 0}
+header.top .meta code{background:#eef1f6;padding:1px 5px;border-radius:4px}
+header.top a{color:var(--info)}
+main{max-width:1100px;margin:0 auto;padding:8px 32px 48px}
+h2{margin:30px 0 12px;font-size:18px}h3{font-size:15px;margin:16px 0 6px}h4,h5,h6{font-size:14px;margin:12px 0 4px}
+code,.ep{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+p{margin:6px 0}pre{background:#eef1f6;padding:10px 12px;border-radius:8px;overflow:auto;font-size:12.5px;max-height:480px}
+blockquote{margin:8px 0;padding:4px 12px;border-left:3px solid var(--line);color:var(--muted)}
+.overview{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.tile b{display:block;font-size:22px}.tile span{color:var(--muted);font-size:13px}
+.tile.bad{border-color:#e7a3a3;background:var(--badbg)}.tile.ok{border-color:#9fd3b0}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:14px}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#eef1f6;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+tr:last-child td{border-bottom:0}.scroll{overflow-x:auto}
+.m{display:inline-block;min-width:46px;text-align:center;padding:1px 6px;border-radius:4px;color:#fff;font-size:11px;font-weight:700}
+.m.GET{background:var(--get)}.m.POST{background:var(--post)}.m.PUT{background:var(--put)}.m.DELETE{background:var(--delete)}.m.PATCH{background:var(--patch)}
+.chip{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:99px;border:1px solid var(--line);background:#eef1f6;color:var(--ink);white-space:nowrap;margin:1px 2px 1px 0}
+.chip.ok{background:var(--okbg);color:var(--ok);border-color:#9fd3b0}.chip.bad{background:var(--badbg);color:var(--bad);border-color:#e7a3a3}
+.chip.warn{background:var(--warnbg);color:var(--warn);border-color:#f0cf98}.chip.info{background:var(--infobg);color:var(--info);border-color:#b5c8f3}
+.note{background:var(--warnbg);color:var(--warn);border:1px solid #f0cf98;border-radius:8px;padding:8px 12px;margin:10px 0}
+.note b{display:inline-block;width:18px;height:18px;line-height:18px;text-align:center;border-radius:50%;background:var(--warn);color:#fff;margin-right:6px;font-size:12px}
+details.card,details.test{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:10px 0;overflow:hidden}
+details.card>summary,details.test>summary{cursor:pointer;padding:12px 16px;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details.card>summary::before,details.test>summary::before{content:"\25B8";color:var(--muted)}
+details[open].card>summary::before,details[open].test>summary::before{content:"\25BE"}
+details .body{padding:4px 16px 16px;border-top:1px solid var(--line)}
+details.raw{margin:8px 0;color:var(--muted);font-size:13px}details.raw summary{cursor:pointer}
+.uc{font-weight:700;white-space:nowrap}.title{flex:1;min-width:200px}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:14px 0 6px}
+.step{border-radius:8px;padding:5px 10px;color:#fff;font-size:12.5px;max-width:330px}
+.step small{display:block;opacity:.92;font-family:ui-monospace,Menlo,monospace;font-size:11px}
+.step.given{background:var(--given)}.step.when{background:var(--when)}.step.then{background:var(--then)}
+.step b{font-size:10.5px;letter-spacing:.05em;margin-right:4px;opacity:.95}
+.arrow{color:var(--muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:8px 0}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+ul.checks{margin:8px 0 0;padding:0;list-style:none}ul.checks li{padding:4px 0 4px 26px;position:relative}
+ul.checks li::before{content:"\2713";position:absolute;left:4px;color:var(--then);font-weight:700}
+.sub{margin:14px 0 4px;font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.matrix td,.matrix th{text-align:center;padding:6px 8px}.matrix td:first-child,.matrix th:first-child{text-align:left}
+.dot{font-size:15px;line-height:1}.dot.setup{color:var(--given)}.dot.main{color:var(--when)}
+.barwrap{display:flex;align-items:center;gap:8px}.bar{display:inline-block;flex:1;min-width:80px;height:12px;background:#e3e7ee;border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--when)}.bar i.ok{background:#2e9d5b}.bar i.bad{background:#d14343}.bar i.sel{background:var(--when)}.bar i.def{background:#8a94a6}
+.barlabel{font-size:12.5px;white-space:nowrap;min-width:64px}
+.rank{display:grid;grid-template-columns:34px 112px minmax(160px,1.2fr) minmax(140px,2fr) 112px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.rank .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rt td.n,.rt th:nth-child(n+5):nth-last-child(n+3){text-align:center}.factors{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:8px 0;font-size:13px;color:var(--muted)}.factors dt{font-weight:700;color:var(--ink);text-align:center;min-width:22px;background:#eef1f6;border-radius:5px}.factors dd{margin:0}.factors dd b{color:var(--ink)}.rt td{vertical-align:middle}.rt td:nth-child(2),.rt td:nth-child(4){white-space:nowrap}.rt td:nth-child(3){width:42%}.rt td.n{width:34px;padding-left:6px;padding-right:6px}.rt td.sc{min-width:150px}.rt td.sc .bar{min-width:70px}.rt tr.def td{color:#4a5568}.rt tr.cutrow td{background:#fff7e0;color:var(--muted);font-size:12px;text-align:center;padding:3px}.cut{border-top:2px dashed var(--muted);margin:4px 0;color:var(--muted);font-size:12px;padding-top:2px}
+.banner{border-radius:12px;padding:16px 20px;margin:16px 0;border:1px solid var(--line);background:var(--card)}
+.banner.ok{background:var(--okbg);border-color:#9fd3b0}.banner.bad{background:var(--badbg);border-color:#e7a3a3}.banner.warn{background:var(--warnbg);border-color:#f0cf98}
+.banner .lead{font-size:17px;font-weight:700;margin-bottom:4px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px}
+.cardbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.cardbox h3{margin-top:0}.cardbox .item{border-top:1px solid var(--line);padding:8px 0}.cardbox .item:first-of-type{border-top:0}
+.metric .row{font-size:13.5px;color:var(--muted)}.metric .row b{color:var(--ink)}.metric .delta{font-weight:700;margin-top:4px}
+.heat th{text-transform:none;letter-spacing:0;font-size:11px}.heat td,.heat th{padding:6px;font-size:11.5px;vertical-align:top;text-align:left;min-width:78px}
+.heat td.hit{background:var(--okbg)}.heat td.miss{background:var(--badbg)}.heat td.empty{background:#f3f4f7;color:#9aa3b2;text-align:center}
+.heat .chip{display:inline-block;white-space:nowrap;margin:2px 3px 2px 0;font-size:11px;border-radius:6px}.heat th[scope=row]{min-width:190px;font-weight:600}.groups{display:grid;gap:12px}
+.stages{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+a.stagecard{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+a.stagecard:hover{border-color:var(--when)}.stagecard.missing{opacity:.75;border-style:dashed}
+.stagecard h3{margin:0 0 4px}.stagecard .gen{color:var(--muted);font-size:12.5px}
+.muted{color:var(--muted)}.small{font-size:12.5px}.sr{position:absolute;left:-9999px}
+footer{color:var(--muted);font-size:13px;margin:32px auto;max-width:1100px;padding:0 32px}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Run report: QA</h1>
+  <p class="meta">Feature <b>QA</b> &middot; generated 2026-10-08 11:46 UTC &middot; <a href="index.html">all stages (index.html)</a></p>
+  <p class="meta">Sources: <code>qa/05-run-report.md</code></p>
+</header>
+<main>
+<section><h2>Verdict</h2><div class="banner ok"><div class="lead">✓ all tests passing</div><p>All 5 of 5 live gate tests pass and none of the 5 selected use cases is red; no application bugs found. Sabotage killed 14 of 24 mutations on the first run; after strengthening 20 of 24 are killed and the 4 survivors are accepted as defensive guards no real reply can reach. One of five early suite runs started with 4 of 5 tests failing on a network-level error that did not come back in any later run (host-side flake, cause not confirmed).</p></div></section>
+<section><h2>Metrics: before and after</h2><div class="cards"><div class="cardbox metric"><h3>Gate tests passing (live <code>gate</code> + <code>cart</code> projects)</h3><div class="row">Before: <b>1 / 5 (first run, host-side flake)</b></div><div class="row">After: <b>5 / 5</b> &rarr;</div><div class="delta">▲ first figure up by 4</div></div><div class="cardbox metric"><h3>Use cases automated of selected</h3><div class="row">Before: <b>5 / 5</b></div><div class="row">After: <b>5 / 5</b> &rarr;</div><div class="delta">■ first figure unchanged</div></div><div class="cardbox metric"><h3>Application bugs (confirmed / candidates)</h3><div class="row">Before: <b>0 / 0</b></div><div class="row">After: <b>0 / 0</b> &rarr;</div><div class="delta">■ first figure unchanged</div></div><div class="cardbox metric"><h3>Sabotage mutations killed / survived</h3><div class="row">Before: <b>14 / 10 (first run)</b></div><div class="row">After: <b>20 / 4</b> &rarr;</div><div class="delta">▲ first figure up by 6; ▼ second figure down by 6</div></div><div class="cardbox metric"><h3>Sabotage survivors accepted as defensive</h3><div class="row">Before: <b>0</b></div><div class="row">After: <b>4</b> &rarr;</div><div class="delta">▲ first figure up by 4</div></div></div><p class="muted small">Suite runs: stage 5, run 1: 1 passed, 4 failed; runs 2 to 5: 5 passed. After strengthening: 5 of 5 in 26.0 s (agent), 5 of 5 in 26.1 s and 27.8 s (orchestrator, before and after the last three assertions). <code>npm run verify</code> green: typecheck and framework check, 4 specs, 12 source files.</p></section>
+<section><h2>Results by area</h2><div class="scroll"><table><thead><tr><th>Area</th><th>Passing / failing</th><th>Use cases selected</th><th>Automated</th><th>UC IDs</th></tr></thead><tbody><tr><td>Isolation gate</td><td><span class="barwrap"><span class="bar"><i class="ok" style="width:100%"></i></span><span class="barlabel">1 pass / 0 fail ✓</span></span></td><td>1</td><td>1</td><td>UC-CART-01</td></tr><tr><td>Cart manipulation</td><td><span class="barwrap"><span class="bar"><i class="ok" style="width:100%"></i></span><span class="barlabel">4 pass / 0 fail ✓</span></span></td><td>4</td><td>4</td><td>UC-CART-02, UC-CART-03, UC-CART-21, UC-CART-29</td></tr></tbody></table></div></section>
+<section><h2>What was improved</h2><div class="cards"><div class="cardbox"><h3>Framework <span class="chip info">2 changes</span></h3><div class="item"><b>Teardown could silently leave lines in the cart (S24): the fixture&#39;s <code>finally</code> only logged a failed cleanup</b><p>&rarr; <code>emptiesCart</code> deletes every line; <code>withCleanup</code> re-reads the cart and asserts it is empty, fails a passing test if cleanup fails, and when the test body failed the body&#39;s error is the one thrown (cleanup failure only logged)</p><p class="small muted"><i>Layer/file:</i> <code>src/actors/guest.ts</code>, <code>src/fixtures/index.ts</code></p><p class="small muted"><i>Evidence it is protected:</i> S24 killed by UC-CART-02 at the teardown proof</p></div><div class="item"><b>A failed <code>.not</code> matcher printed the message of the positive case</b><p>&rarr; Four matchers print &quot;did not expect&quot; / &quot;not expected&quot; when negated</p><p class="small muted"><i>Layer/file:</i> <code>src/matchers/index.ts</code></p><p class="small muted"><i>Evidence it is protected:</i> Messages read correctly in the mutation runs</p></div></div><div class="cardbox"><h3>Test strength <span class="chip info">2 changes</span></h3><div class="item"><b>The isolation spec repeated the number of units (2) as a bare literal in four places</b><p>&rarr; One constant <code>GUEST_UNITS</code> feeds the setup and every expectation</p><p class="small muted"><i>Layer/file:</i> <code>tests/cart/isolation.api.spec.ts</code></p><p class="small muted"><i>Evidence it is protected:</i> <code>npm run verify</code> green; UC-CART-01 green in every later run</p></div><div class="item"><b>Matchers never shown to fail (S16 to S20)</b><p>&rarr; Live negative controls on real replies (<code>.not.toBeAccepted</code>, <code>.not.toBeRefusedWith</code> with another message, <code>.not.toHaveExactlyTheLines</code> with a wrong id and with the old quantity, <code>.not.toConfirmRemoval</code> with a wrong count) and plain <code>expect</code>s on the line id, the refusal message and <code>cartItemCount</code></p><p class="small muted"><i>Layer/file:</i> <code>tests/cart/isolation.api.spec.ts</code>, <code>adding.api.spec.ts</code>, <code>changing-quantity.api.spec.ts</code>, <code>removing.api.spec.ts</code></p><p class="small muted"><i>Evidence it is protected:</i> S16 killed by UC-CART-01; S17, S18 by UC-CART-21; S19 by UC-CART-01; S20 by UC-CART-29</p></div></div><div class="cardbox"><h3>Test infrastructure <span class="chip neutral">nothing changed</span></h3><p>Nothing changed (projects <code>gate</code> and <code>cart</code>).</p></div><div class="cardbox"><h3>Process <span class="chip info">3 changes</span></h3><div class="item"><b>The first suite run failed 4 tests with a network-level error and only the tail was captured</b><p>&rarr; Every later run was saved to a file so a failure can be read from its head</p><p class="small muted"><i>Layer/file:</i> Session practice, no code</p><p class="small muted"><i>Evidence it is protected:</i> Later runs all passed; the next failure will leave the full error</p></div><div class="item"><b>The first debugging attempt and the first strengthening attempt each ended without a report</b><p>&rarr; Re-run with an explicit &quot;final message must be the report&quot; requirement and an instruction to inspect partial state first</p><p class="small muted"><i>Layer/file:</i> Orchestration</p><p class="small muted"><i>Evidence it is protected:</i> The re-runs delivered reports that matched the working tree</p></div><div class="item"><b>The strengthening and sabotage instructions steered towards offline tests of framework classes</b><p>&rarr; Rewritten: strengthening improves the code or the live tests; a guard no real reply can reach is accepted as defensive</p><p class="small muted"><i>Layer/file:</i> <code>.claude/agents/</code>, <code>.claude/rules/framework-architecture.md</code>, <code>CLAUDE.md</code>, <code>.claude/commands/qa-cycle.md</code></p><p class="small muted"><i>Evidence it is protected:</i> The second round used no stubs</p></div></div></div></section>
+<section><h2>Application bugs</h2><p><span class="chip ok">✓ no application bug listed</span></p><p>No application bug found. A direct <code>curl</code> replay of the header counter call returned HTTP 200 three times in a row (0.7 to 0.8 s each). Known-issue candidates (quantity 0 deletes the line but answers HTTP 500; malformed numbers answer 502 HTML) are in the discovery notes and are not yet tests.</p></section>
+<section><h2>Flaky or unresolved</h2><ul><li><b>One flaky suite run (host-side, not reproduced).</b> Stage 5, run 1: the isolation test passed, then all 4 cart tests failed at their first request (the body-less POST for the header counter, <code>src/api/http-client.ts:15</code>, reached through <code>Guest.hasAnEmptyCart</code>). The call log shows the request and no response, which points at a dropped or reset connection to the shared host. Not seen in later runs (4 in stage 5, 4 after strengthening, plus the mutation runs). Do not add retries or sleeps; a fixture-level single reconnect for setup calls only is the first option, and only after the cause is confirmed.</li><li><b>New risk from the stricter teardown.</b> A host hiccup while emptying the cart now fails the test where it used to print a warning, and each guest costs one extra <code>GET /cart</code>. No flakiness in the live runs after the change, but the earlier dropped-connection flake could now also show up at teardown.</li><li><b>Four sabotage survivors accepted as defensive (S04, S05, S21, S22).</b> Guards no real reply can reach; no test covers them, by decision (no tests of framework classes).</li><li><b>Sabotage is a closed set.</b> The new assertions were aimed at the known mutations; a fresh mutation round would be the honest next check. S01 to S15 were not re-run after strengthening.</li></ul></section>
+<section><h2>Coverage gaps</h2><ul><li>53 of the 58 use cases are deferred by user decision (limit to 5): add validation and limits (UC-CART-04 to 17), cart view and counter semantics (UC-CART-18 to 20), update in a multi-line cart and limits (UC-CART-22 to 28), removal edge cases (UC-CART-30 to 36), codes, totals and shipping, currency (UC-CART-37 to 58). Known-issue candidates (UC-CART-26, 27, 35) have no test and no <code>known-issue</code> project yet.</li><li>Line ownership is covered only by the delete half inside UC-CART-01; the update of a foreign or unknown line (UC-CART-28) and UC-CART-34 are deferred.</li><li>Every live test uses one product (Titleist SM6) for the cart arithmetic; the tier price of product 14 is avoided on purpose (quantity 1 only).</li><li>Discount and gift card success paths were never observed (no valid code), so they are not covered.</li></ul></section>
+<details class="card"><summary>Appendix A: bug reproductions</summary><div class="body"><p>None: no application bug found.</p></div></details>
+<details class="card"><summary>Appendix B: per-failure details</summary><div class="body"><p><b>Stage 5, run 1, UC-CART-02, 03, 21, 29 (4 tests).</b> Classification: ENVIRONMENT/FLAKE. All four failed at the first call of <code>Guest.hasAnEmptyCart</code>, <code>POST /shoppingcart/cartsummary?cart=True</code> with an empty body, from <code>src/api/http-client.ts:15</code>. Evidence: the request (content-length 0, content-type application/octet-stream) is in the call log, no response is; the same call replayed with <code>curl -i</code> returns 200; later runs pass unchanged. Root cause not confirmed. No code was changed for it.</p></div></details>
+<details class="card"><summary>Appendix C: feature-specific observations</summary><div class="body"><ul><li>The host keys a guest cart by IP plus User-Agent; every test gets a fresh User-Agent from <code>userAgentFor</code>, so the 5 live tests run in parallel with 2 workers without sharing a cart.</li><li>A full run of the 5 live tests takes about 26 seconds.</li><li>The delete reply <code>cartItemCount</code> counts lines, the header counter <code>CartItemsCount</code> counts units; UC-CART-29 asserts each by its own meaning.</li></ul></div></details>
+<details class="card"><summary>About this run</summary><div class="body"><p>Input: 5 automated use cases under <code>tests/cart/</code> with the bootstrapped <code>src/</code> framework (2 workers, no retries, default QA root <code>qa/</code>). Written by the API test debugger, updated by the orchestrator after sabotage and strengthening (subagents cannot write under <code>qa/</code>). Every test in the kit is a live use-case test; the strengthening round added assertions and a stricter teardown, and no offline tests.</p></div></details>
+</main>
+<footer>Generated by <code>scripts/visualize.mjs</code> from the files listed above. No network, no AI.</footer>
+</body>
+</html>

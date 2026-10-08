@@ -1,81 +1,88 @@
-# QA run report - Wave 1 (10 tests), Bearstore / SmartStore API
+# Run report: cart (Bearstore / SmartStore), stages 5 to 7
 
-Run date: 2026-10-02. Target: https://bearstore-testsite.smartbear.com. Command: `npm test` (Playwright Test, `request` fixture only, workers: 2, retries: 0, projects gate -> cart, and api).
+Input: 5 automated use cases under `tests/cart/` with the bootstrapped `src/` framework (2 workers, no retries, default QA root `qa/`). Written by the API test debugger, updated by the orchestrator after sabotage and strengthening (subagents cannot write under `qa/`). Every test in the kit is a live use-case test; the strengthening round added assertions and a stricter teardown, and no offline tests.
 
 ## 1. Verdict
 
-16/16 tests pass in the full suite and again in one repeat run (10 Wave 1 tests plus 6 pre-existing UC-CARTWS workshop tests that live in the same `tests/` folder). 0 failures, 0 flaky, 0 test fixes needed, 0 application bugs caught by an automated assertion this wave (the test.fail() defect tests were deliberately dropped). OQ-01 is CONFIRMED: cookieless requests with an identical User-Agent share one visitor.
+All 5 of 5 live gate tests pass and none of the 5 selected use cases is red; no application bugs found. Sabotage killed 14 of 24 mutations on the first run; after strengthening 20 of 24 are killed and the 4 survivors are accepted as defensive guards no real reply can reach. One of five early suite runs started with 4 of 5 tests failing on a network-level error that did not come back in any later run (host-side flake, cause not confirmed).
 
-## 2. Results by area
+## 2. Metrics
 
-| Area | Use cases selected (Wave 1, Gate 2) | Automated | Passing | Failing | UC IDs |
+| Metric | Before | After |
+|---|---|---|
+| Gate tests passing (live `gate` + `cart` projects) | 1 / 5 (first run, host-side flake) | 5 / 5 |
+| Use cases automated of selected | 5 / 5 | 5 / 5 |
+| Application bugs (confirmed / candidates) | 0 / 0 | 0 / 0 |
+| Sabotage mutations killed / survived | 14 / 10 (first run) | 20 / 4 |
+| Sabotage survivors accepted as defensive | 0 | 4 |
+
+Suite runs: stage 5, run 1: 1 passed, 4 failed; runs 2 to 5: 5 passed. After strengthening: 5 of 5 in 26.0 s (agent), 5 of 5 in 26.1 s and 27.8 s (orchestrator, before and after the last three assertions). `npm run verify` green: typecheck and framework check, 4 specs, 12 source files.
+
+## 3. Results by area
+
+| Area | Use cases selected | Automated | Passing | Failing | UC IDs |
 |---|---|---|---|---|---|
-| cart | 2 | 2 | 2 | 0 | UC-CART-96 (gate), UC-CART-01 |
-| auth | 3 | 3 | 3 | 0 | UC-AUTH-22, UC-AUTH-02, UC-AUTH-07 |
-| catalog | 2 | 2 | 2 | 0 | UC-CATALOG-01, UC-CATALOG-03 |
-| search | 2 | 2 | 2 | 0 | UC-SEARCH-01, UC-SEARCH-32 |
-| content | 1 | 1 | 1 | 0 | UC-CONTENT-16 |
-| **Wave 1 total** | **10** | **10** | **10** | **0** | |
-| cart workshop (outside Wave 1, see 6) | n/a | 6 | 6 | 0 | UC-CARTWS-01, 02, 04, 08, 10, 11 |
+| Isolation gate | 1 | 1 | 1 | 0 | UC-CART-01 |
+| Cart manipulation | 4 | 4 | 4 | 0 | UC-CART-02, UC-CART-03, UC-CART-21, UC-CART-29 |
 
-Run 1 (test_run, full suite): 16 passed, 39.9 s. Run 2 (repeat with JSON reporter, same config): 16 passed, 40.2 s, `flaky: 0`, `unexpected: 0`. Gate order held: UC-CART-96 ran and passed before UC-CART-01. Per-test timings were stable between runs (slowest: UC-CART-96 about 13 s because it creates four visitors; UC-CARTWS-11 about 8 s).
+## 4. What was improved in this session
 
-### OQ-01 annotation (from the JSON report of run 2)
+### Framework
 
-```
-UC-CART-96  annotation  type=OQ-01
-CONFIRMED: cookieless contexts with an identical User-Agent share one visitor (CartItemsCount=1 in B). Unique User-Agent per test is mandatory.
-```
+| Weakness | Change | Layer/file | Evidence it is protected |
+|---|---|---|---|
+| Teardown could silently leave lines in the cart (S24): the fixture's `finally` only logged a failed cleanup | `emptiesCart` deletes every line; `withCleanup` re-reads the cart and asserts it is empty, fails a passing test if cleanup fails, and when the test body failed the body's error is the one thrown (cleanup failure only logged) | `src/actors/guest.ts`, `src/fixtures/index.ts` | S24 killed by UC-CART-02 at the teardown proof |
+| A failed `.not` matcher printed the message of the positive case | Four matchers print "did not expect" / "not expected" when negated | `src/matchers/index.ts` | Messages read correctly in the mutation runs |
 
-The same test also asserts the part that the cart suite depends on: with different User-Agents, visitor B sees `CartItemsCount` 0 after visitor A added a product. That held in both runs. Consequence: every test must use a unique User-Agent (already done in `tests/support/client.ts`); two parallel cookieless clients with the same User-Agent and IP would corrupt each other's carts. This also matches the earlier "cart loss seen twice, not reproduced" note in SUMMARY.md.
+### Test strength
 
-## 3. Application bugs found
+| Weakness | Change | Layer/file | Evidence it is protected |
+|---|---|---|---|
+| The isolation spec repeated the number of units (2) as a bare literal in four places | One constant `GUEST_UNITS` feeds the setup and every expectation | `tests/cart/isolation.api.spec.ts` | `npm run verify` green; UC-CART-01 green in every later run |
+| Matchers never shown to fail (S16 to S20) | Live negative controls on real replies (`.not.toBeAccepted`, `.not.toBeRefusedWith` with another message, `.not.toHaveExactlyTheLines` with a wrong id and with the old quantity, `.not.toConfirmRemoval` with a wrong count) and plain `expect`s on the line id, the refusal message and `cartItemCount` | `tests/cart/isolation.api.spec.ts`, `adding.api.spec.ts`, `changing-quantity.api.spec.ts`, `removing.api.spec.ts` | S16 killed by UC-CART-01; S17, S18 by UC-CART-21; S19 by UC-CART-01; S20 by UC-CART-29 |
 
-None caught by this wave's automated tests (all passing, no assertion contradicts a UC Expected section). The known, not asserted issues from discovery are listed under section 7 with one replay each.
+No assertion was weakened, removed or skipped; no retries or sleeps were added.
 
-## 4. Test fixes made
+### Test infrastructure
 
-None. No test or support file was edited in this stage.
+Nothing changed (projects `gate` and `cart`).
 
-## 5. Flaky or unresolved
+### Process
 
-None. 0 flaky in two consecutive full runs. No 429, timeout or 5xx was seen in the automated tests. Residual risks: the data-dependent checks (catalog tiles, search hits) assert invariants rather than counts, so catalog changes by other users should not break them; the host is shared, so a future failure in UC-CART-96 part 2 would point at the host or an IP-level change, not at the test.
+| Weakness | Change | Layer/file | Evidence it is protected |
+|---|---|---|---|
+| The first suite run failed 4 tests with a network-level error and only the tail was captured | Every later run was saved to a file so a failure can be read from its head | Session practice, no code | Later runs all passed; the next failure will leave the full error |
+| The first debugging attempt and the first strengthening attempt each ended without a report | Re-run with an explicit "final message must be the report" requirement and an instruction to inspect partial state first | Orchestration | The re-runs delivered reports that matched the working tree |
+| The strengthening and sabotage instructions steered towards offline tests of framework classes | Rewritten: strengthening improves the code or the live tests; a guard no real reply can reach is accepted as defensive | `.claude/agents/`, `.claude/rules/framework-architecture.md`, `CLAUDE.md`, `.claude/commands/qa-cycle.md` | The second round used no stubs |
 
-## 6. Coverage check (`qa/04-coverage.md`)
+## 5. Application bugs
 
-All 10 rows match reality: every UC ID, test file and exact test title (including the `@needs-account` suffix on UC-AUTH-02 and UC-AUTH-07) exists in `tests/`, and every row says `passing`, which both runs confirm. Observations, not edited because this stage may only edit `tests/`:
+No application bug found. A direct `curl` replay of the header counter call returned HTTP 200 three times in a row (0.7 to 0.8 s each). Known-issue candidates (quantity 0 deletes the line but answers HTTP 500; malformed numbers answer 502 HTML) are in the discovery notes and are not yet tests.
 
-- The suite also contains 6 tests in `tests/cartws.api.spec.ts` (UC-CARTWS-01, 02, 04, 08, 10, 11) from the earlier workshop cycle (`qa/workshop/cartws/`). They are not in `qa/04-coverage.md` (they are tracked in `qa/workshop/cartws/04-coverage.md`) and run in the `api` project, so `npm test` is 16 tests, not 10.
-- UC-CARTWS-08 and UC-CARTWS-11 pin current buggy behaviour (HTTP 500 on update to quantity 0 or negative, HTTP 500 on update of a foreign line id) as passing assertions. They will go red if the host fixes those defects; that is intended, but it differs from the Gate 2 decision to keep only "tests that pass today" as plain passing tests with no defect pinning. Decide whether they stay in the default `npm test`.
+## 6. Flaky or unresolved
 
-## 7. Known, not covered by an automated test this wave
+- **One flaky suite run (host-side, not reproduced).** Stage 5, run 1: the isolation test passed, then all 4 cart tests failed at their first request (the body-less POST for the header counter, `src/api/http-client.ts:15`, reached through `Guest.hasAnEmptyCart`). The call log shows the request and no response, which points at a dropped or reset connection to the shared host. Not seen in later runs (4 in stage 5, 4 after strengthening, plus the mutation runs). Do not add retries or sleeps; a fixture-level single reconnect for setup calls only is the first option, and only after the cause is confirmed.
+- **New risk from the stricter teardown.** A host hiccup while emptying the cart now fails the test where it used to print a warning, and each guest costs one extra `GET /cart`. No flakiness in the live runs after the change, but the earlier dropped-connection flake could now also show up at teardown.
+- **Four sabotage survivors accepted as defensive (S04, S05, S21, S22).** Guards no real reply can reach; no test covers them, by decision (no tests of framework classes).
+- **Sabotage is a closed set.** The new assertions were aimed at the known mutations; a fresh mutation round would be the honest next check. S01 to S15 were not re-run after strengthening.
 
-Each repro was replayed exactly once in this stage (`B=https://bearstore-testsite.smartbear.com`). Observed results from 2026-10-02. SUMMARY.md section 4 numbers in brackets.
+## 7. Coverage gaps
 
-| # | Severity guess | Issue | Repro | Expected | Observed (this stage) |
-|---|---|---|---|---|---|
-| 2 | Medium | Search page size -1 gives a gateway error | `curl -i "$B/search?q=er&s=-1"` | 4xx or default page size | HTTP 502 |
-| 4 | Medium | Reviews page with non-numeric id gives a gateway error | `curl -i $B/product/reviews/abc` | 404 or 400 | HTTP 502 |
-| 5 | Medium | Category page size 0 crashes | `curl -i "$B/sports?s=0"` | 200 with default paging | HTTP 500 |
-| 7 | Medium | Price update for unknown product returns 500 and leaks an exception message | `curl -i -X POST -d x=1 "$B/product/updateproductdetails?productId=99999&bundleItemId=0"` | 4xx without internals | HTTP 500, body contains "Object reference not set to an instance of an object." |
-| 9 | Medium | Register without anti-forgery token returns 500 | `curl -i -X POST -d "Email=a@example.com" $B/register` | 400 or 403 | HTTP 500 |
-| 13 | Medium (security hygiene) | Version-disclosure headers | `curl -sI $B/` | no `Server` version, `X-AspNet*`, `X-Powered-By` | `server: Microsoft-IIS/10.0`, `x-aspnetmvc-version: 5.2`, `x-aspnet-version: 4.0.30319`, `x-powered-by: ASP.NET` |
-| 14 | Medium (security) | Account enumeration via password recovery | `curl -s -d "Email=nobody-qa-probe@example.com&send-email=Submit" $B/customer/passwordrecovery` | uniform message | body contains "Email not found." |
-| 16 | Low | Back-in-stock page answers anonymously while siblings redirect to login | `curl -i $B/customer/backinstocksubscriptions` | 302 to login | HTTP 200 |
-| 19 | Low | 301 redirect downgrades to http | `curl -i $B/BOOKS` | `Location: https://...` | HTTP 301, `location: http://bearstore-testsite.smartbear.com/books` |
-| 20 | Low | `/blog` is linked in header and footer but missing | `curl -i $B/blog` | 200 | HTTP 404 |
+- 53 of the 58 use cases are deferred by user decision (limit to 5): add validation and limits (UC-CART-04 to 17), cart view and counter semantics (UC-CART-18 to 20), update in a multi-line cart and limits (UC-CART-22 to 28), removal edge cases (UC-CART-30 to 36), codes, totals and shipping, currency (UC-CART-37 to 58). Known-issue candidates (UC-CART-26, 27, 35) have no test and no `known-issue` project yet.
+- Line ownership is covered only by the delete half inside UC-CART-01; the update of a foreign or unknown line (UC-CART-28) and UC-CART-34 are deferred.
+- Every live test uses one product (Titleist SM6) for the cart arithmetic; the tier price of product 14 is avoided on purpose (quantity 1 only).
+- Discount and gift card success paths were never observed (no valid code), so they are not covered.
 
-All of the above reproduced as described in discovery. Not replayed here (state-changing, mail-sending, need a session, or already pinned by the UC-CARTWS tests): #1 newsletter 502 (sends mail flow), #3 and #6 cart update/delete errors (pinned by UC-CARTWS-08 and 11), #8 contact form `<` 500, #10 wishlist guid exposes visitor cookie (session takeover, High, needs a cart), #11 AUTH cookie not invalidated at logout, #12 AUTH cookie lacks Secure, #15 no CSRF, #17 to #18, #21 to #27.
+## Appendix A: bug reproductions
 
-## 8. Coverage gaps
+None: no application bug found.
 
-- Not implemented from the original Wave 1 selection of 56: 46 use cases (the 10 above are done). They include the dropped 22 `test.fail()` known-issue/defect tests (for example UC-AUTH-21, UC-AUTH-48, UC-AUTH-49, UC-AUTH-50, UC-CATALOG-12, UC-CATALOG-23, UC-CATALOG-36, UC-CATALOG-41, UC-SEARCH-27, UC-SEARCH-28, UC-CART-33, UC-CART-39, UC-CART-43, UC-CART-79, UC-CART-80, UC-CONTENT-14, UC-CONTENT-15, UC-CONTENT-26, UC-CONTENT-33) and the plain happy/negative paths: UC-AUTH-01, 13, 18, 23, 25, 34, 51; UC-CATALOG-21, 24, 34; UC-SEARCH-03, 09; UC-CART-02, 27, 30, 40, 46, 66, 69, 70, 74; UC-CONTENT-01, 02, 22. The full ranked list is in `qa/03-selected.md`.
-- Wave 2: 31 optional use cases, not started.
-- Deferred: 177 of 264 use cases (264 - 56 - 31).
-- Thin areas after this wave (1 to 3 tests each): content 1 of 8 planned; search 2 of 37 (no filter, sort, paging, instant search); catalog 2 of 9 (no product page, 404, variant or canonical checks); auth 3 of 15 (no registration, logout, cookie flag or cross-customer checks); cart 2 of 18 (no update, delete, checkout entry, wishlist or compare in Wave 1; workshop UC-CARTWS tests add guest add/update/remove coverage).
-- Out of scope by decision: order placement, change-password success, coupon and gift-card success, mail flows (contact and newsletter valid submissions), account registration per run, quantity 10000 cases, repeated 5xx probing.
-- Security tests (session takeover via share link, logout invalidation, cookie flags, security headers, CSRF) have no automated coverage this wave.
+## Appendix B: per-failure details
 
-## 9. Per-failure details
+**Stage 5, run 1, UC-CART-02, 03, 21, 29 (4 tests).** Classification: ENVIRONMENT/FLAKE. All four failed at the first call of `Guest.hasAnEmptyCart`, `POST /shoppingcart/cartsummary?cart=True` with an empty body, from `src/api/http-client.ts:15`. Evidence: the request (content-length 0, content-type application/octet-stream) is in the call log, no response is; the same call replayed with `curl -i` returns 200; later runs pass unchanged. Root cause not confirmed. No code was changed for it.
 
-No failures in either run, so there is nothing to classify. No curl replays were needed for test debugging; curl was used only for the section 7 replays.
+## Appendix C: feature-specific observations
+
+- The host keys a guest cart by IP plus User-Agent; every test gets a fresh User-Agent from `userAgentFor`, so the 5 live tests run in parallel with 2 workers without sharing a cart.
+- A full run of the 5 live tests takes about 26 seconds.
+- The delete reply `cartItemCount` counts lines, the header counter `CartItemsCount` counts units; UC-CART-29 asserts each by its own meaning.

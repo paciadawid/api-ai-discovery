@@ -1,73 +1,49 @@
-# Open questions (consolidated, deduplicated)
+# Open questions (merged, deduplicated)
 
-Merged from the `notes.md` of every area folder. Each row is tagged with the area(s) that raised it and who or what could answer it. "Human" means the review-gate reader; "dev/ops" means whoever runs the SmartStore host. Rows marked [merged] combine the same question raised by more than one area. The row tagged [consolidator] is a hypothesis linking several observations; it is not a claim from any area file.
+Each item: area / unit, then who or what could answer it. Duplicates across units are merged and list every unit that raised them. "curl probe" = answerable by a small replay under a unique User-Agent; "host owner" = whoever runs the SmartStore test site or has its source; "out of scope" = needs checkout, orders, accounts or login.
 
-## Cross-cutting
+## cart / cart-add
 
-| id | area | question | who / what could answer |
-|---|---|---|---|
-| OQ-01 | catalog, cart-compare-wishlist, auth, content [merged] [consolidator] | Why did a cart lose its item once when `SMARTSTORE.VISITOR` changed (51cb... to cd48...) and once when a line id changed with no delete, and why did the auth browser show "1 Shopping Basket" right after registering from an empty browser? Catalog and content found that cookieless requests from the same IP and User-Agent are handed the same visitor GUID. Hypothesis (not verified): parallel browsers and tests from one machine share one guest customer, so carts bleed between agents. | A controlled probe: two cookie-less contexts with identical and with different User-Agent, add to cart in one, read `/shoppingcart/cartsummary` in the other. Human to approve; no host knowledge needed. |
-| OQ-02 | auth, cart-compare-wishlist | Test-account strategy: `BEARSTORE_EMAIL` / `BEARSTORE_PASSWORD` are not set and `tests/support/auth.ts` does not exist. The three throwaway accounts have unsaved passwords and are not reusable. Register a fresh account per run, or will the human supply credentials? | Human (Decision 1 in SUMMARY.md). |
-| OQ-03 | all | Why do malformed inputs yield 502 from the load balancer (app crash and connection reset, or an ELB/WAF rule)? Affects whether the tests can rely on a stable 502 status. | dev/ops of the host (not investigated to avoid harming the shared host). |
-| OQ-04 | catalog, search, content [merged] | Is there rate limiting on search, instant search, contact, newsletter, login? None of the areas probed it (shared host). | Human decision whether limited probing is allowed; dev/ops for configuration. |
-| OQ-05 | search, catalog [merged] | Is the dataset stable? Counts observed: 38 hits for `er`, 2 for `watch`, 58 products in What's New, 49 products reachable by category. Is the demo data reset or edited periodically? | dev/ops; or compare counts across Stage 2 runs. |
+1. Where does `POST /cart/addproduct/4/9` (unknown cart type) put the item? It answers `success:true` but cart and wishlist counters did not change (compare counter untested). Answer: curl probe (compare counter) or host owner.
+2. Does the gift card Message text appear anywhere in the cart (hover, title attribute)? Only From/For names and emails were visible in the row text. Answer: curl probe of the cart HTML.
+3. Does a different Message alone (same recipient and sender) create a new gift card line? Only RecipientName was varied. Answer: curl probe.
+4. Gift cards $10 (id 20), $50 and $100 were not probed; the field prefix `giftcard<id>-0-.` is presumed. Answer: curl probe.
+5. Is there a stock limit per product? 10000 is a UI setting; no stock message was met. Answer: host owner or probe of other products.
+6. How does a successful add of a product with required attributes (e.g. id 63 Ball Chair: Material, Color, Leather color) look, and what are the attribute field names? Only the failure was checked. Answer: curl probe from the product page markup.
+7. How does `POST /product/updateproductdetails` fail (bad product id, bad body)? Not explored. Answer: curl probe.
 
-## auth
+## cart / cart-quantity
 
-| id | area | question | who / what could answer |
-|---|---|---|---|
-| OQ-10 | auth | What does a successful `POST /customer/changepassword` return, and does it re-issue `SMARTSTORE.AUTH`? Not exercised (password changes excluded). | A fresh throwaway account created by the test run (needs Decision 1 and permission to change a throwaway password). |
-| OQ-11 | auth | Is the 30-day persistent `SMARTSTORE.AUTH` cookie after registration (always persistent, independent of RememberMe) intentional? | SmartStore/product owner. |
-| OQ-12 | auth | Order history row format and `/customer/orderdetails/{id}`: not observed (no orders; ordering excluded). | An account with history (human-supplied `BEARSTORE_EMAIL`), or accept as out of scope. |
-| OQ-13 | auth | Date-of-birth fields, newsletter checkbox on `/customer/info`, and the US `StateProvinceId` dependency were not exercised. | Stage 2 probing with a throwaway account. |
-| OQ-14 | auth | Lockout or throttling after repeated failed logins was not probed (few requests on the shared host). | Human decision (see OQ-04). |
-| OQ-15 | auth | Is `/customer/backinstocksubscriptions` answering 200 anonymously intentional (all other `/customer/*` pages redirect to login)? | SmartStore/product owner. |
-| OQ-16 | auth, content [merged] | Is the password-recovery token flow testable (`/passwordrecovery/confirm?token=&email=` per auth, `/customer/passwordrecoveryconfirm` per content)? Which route is real, what does the confirm POST return, and what do error messages look like? The mailbox of an example.com address is not accessible. Known-email success text ("Email with instructions has been sent to you.") IS observed by auth; content's "not observed" is superseded. | A mailbox the tests can read (human), or leave out of scope. |
+8. What does the "-" button do at quantity 1? Not clicked; inferred from `data-min=1` that it does nothing. Answer: one UI click (unique User-Agent browser).
+9. Does any product have a stock or max-per-order limit below 10000? Only Certina, Titleist SM6 and Transocean were tried; gift cards were not. Answer: host owner or probe.
+10. How are USD line totals and subtotals rounded for prices with cents? Titleist $164.95 x 3 was only seen as part of a subtotal. (Currency-conversion rounding was examined by cart-totals-shipping, see Flow 4.) Answer: curl probe.
 
-## catalog
+## cart / cart-remove
 
-| id | area | question | who / what could answer |
-|---|---|---|---|
-| OQ-20 | catalog | At default page size 24 no category pages (max 13 items). Natural paging can only be tested with small `s`. Is that acceptable? | Human; Stage 2 uses `s=3`. |
-| OQ-21 | catalog, search [merged] | Meaning of delivery filter `d` (1 ready to ship, 2 "2-5 woking days", 3 "7 working days") in terms of product data, and of `a=True` (no visible difference vs default in books and in search). Needs an out-of-stock product to prove. | dev/ops or product data; or a product flagged out of stock. |
-| OQ-22 | catalog, search [merged] | `o=15` (Newest) returns the same order as default; is there any dataset where it differs? | Product data owner. |
-| OQ-23 | catalog | Does `POST /product/reviews/{id}` need login? Not exercised (state owned elsewhere; would create reviews on a shared host). | Human decision; test with a throwaway account. |
-| OQ-24 | catalog | Product 24 shows schema availability InStock but text "Product is not available"; the Attrs partial (SKU/EAN/weight) is empty. Which is authoritative? | Product data owner. |
-| OQ-25 | catalog | `GET /product/askquestionajax/{id}` returns 200 JSON redirect even for unknown ids (99999). Intended? | SmartStore/product owner. |
+11. Does `deletecartitem` also delete wishlist lines (an id from the wishlist)? Out of cart scope, not tried. Answer: curl probe, wishlist unit.
+12. Is `X-Requested-With` required by `deletecartitem`? Not tested without it. Answer: curl probe.
+13. Does a gift card line or a line with attributes remove the same way? Only regular products were removed. Answer: curl probe.
+14. Do `cartsummary` with `wishlist=True` or `compare=True` alone return `CartItemsCount: 0`? Seen in the browser for `wishlist=True`; with curl only `cart=True` and the full variant were replayed. Answer: curl probe.
 
-## search
+## cart / cart-codes
 
-| id | area | question | who / what could answer |
-|---|---|---|---|
-| OQ-30 | search | What does search match beyond name and short description (full description, SKU, manufacturer, tags)? `bear` matches nothing, `watch` hit Tissot via description. | Systematic probing in Stage 2. |
-| OQ-31 | search | Category id to name mapping for `c=` (3,4,5,7,8,10..16,22,23,24): not captured; `c=12` appears to be Basketball. | Read the facet markup of a result page. |
-| OQ-32 | search | Rating filter: `r=5` returned 1 hit although the UI offers 1..4, and `r=0..3` all gave 37 of 38; do unrated products count? | Product data owner. |
-| OQ-33 | search | Is `p` interpreted in the active currency, and what does a negative lower bound (`p=-5~10`, 1 hit) mean? Not tested (currency switch writes visitor state owned by catalog). | Stage 2 with isolated context. |
-| OQ-34 | search | Is the query case-folded only for ASCII? `WATCH` works, `%C3%9Cberman` and `%C3%BCberman` both hit, `uberman` misses. | Stage 2 probing. |
+15. What does a SUCCESSFUL discount code or gift card apply look like (message, totals row, applied-code markup, response shape)? No valid code is public; three conventional guesses (BEARSTORE, WELCOME10, SAVE10) were rejected and no brute forcing was done. Answer: host owner (a test code) or the site's source.
+16. How is an applied code removed (control name, request)? Not observable without an applied code. Answer: host owner / a valid code.
+17. Which conditions make a code valid (minimum order, product, gift card type)? Answer: host owner.
+18. Is the gift card input validated against the codes of purchased virtual gift cards? Those are generated only after an order. Answer: out of scope (orders).
+19. Does a non-matching `itemquantity<id>` posted together with a code apply or an estimate also update the line quantity? Raised by cart-codes; cart-totals-shipping only noted the server did not require the field. Answer: curl probe.
 
-## cart-compare-wishlist
+## cart / cart-totals-shipping
 
-| id | area | question | who / what could answer |
-|---|---|---|---|
-| OQ-40 | cart-compare-wishlist | Valid coupon and gift card codes are unknown, so the discount success path and totals with discount are unobserved. | Human or store owner supplies codes. |
-| OQ-41 | cart-compare-wishlist | Shipping and tax stayed $0.00 for US/CA/DE estimates; are there any non-zero rules? | Store configuration owner. |
-| OQ-42 | cart-compare-wishlist | `sciItemId` is a global sequence (168025...) shared across customers, so ids are not predictable per session. Confirmed only by observation. | Tests must read ids back from `/cart`. |
-| OQ-43 | cart-compare-wishlist | Is `X-Requested-With` required by the AJAX endpoints? All curl calls sent it. | Stage 2 probing. |
-| OQ-44 | cart-compare-wishlist | Valid `POST /checkout/billingaddress`, shipping method and payment selection, and `POST /checkout/confirm` were not exercised (order creation forbidden). | Human decision; recommended to stay excluded. |
-| OQ-45 | cart-compare-wishlist | `POST /shoppingcart/emailwishlist` (sends email) not exercised. | Human decision. |
-| OQ-46 | cart-compare-wishlist | Variant/attribute products, bundles, gift cards (recipient fields) and minimum order quantity were not explored. Gift card flows that email are excluded by areas.md. | Stage 2 selective probing. |
-| OQ-47 | cart-compare-wishlist | Effect of `changecurrency` on cart contents and totals not explored. | Stage 2 with isolated context. |
-| OQ-48 | cart-compare-wishlist | `/wishlist/{x}` with a non-guid string renders the caller's own wishlist (200) while an unknown all-zero guid redirects to `/`. Intended? | SmartStore/product owner. |
+20. Can shipping or tax ever be non-zero (other products, heavy items, a logged-in customer with an address, larger carts)? Always $0.00 in every case seen. Answer: host owner; checkout steps are out of scope.
+21. What does the Checkout gate do (hidden `startcheckout` submit of `POST /cart`; probably a login/guest redirect)? Not clicked, by rule. Answer: out of scope (checkout).
+22. What is the exact tier-price rule and which products have tiers? Observed for product 14 only: $29.95 up to qty 5, $24.90 from qty 6. Answer: host owner or probe of other products.
+23. What did the browser's `POST /cart` (estimate shipping) body look like on the wire? The request list does not show it after the page reload; shape comes from form metadata and the matching curl replay. Answer: not needed for tests.
 
-## content-contact-newsletter
+## cart / cross-unit
 
-| id | area | question | who / what could answer |
-|---|---|---|---|
-| OQ-50 | content-contact-newsletter | Real route and parameter names of newsletter activation (`/newsletter/subscriptionactivation`): bare GET gives 502; `/{guid}/true` and `?token=&active=` give 404. The final state of the test entries (pending or inactive) cannot be seen. | A mailbox or admin access (not available), or SmartStore source. |
-| OQ-51 | content-contact-newsletter | Does an unsubscribe request for an unconfirmed address create any record? Same "verification email has been sent" reply for never-subscribed addresses. | Admin access; unknown. |
-| OQ-52 | content-contact-newsletter | Is the newsletter 502 for long emails a length limit or a crash? Threshold lies between 100 chars (works) and about 250 chars (502). | Bisect in Stage 2 (a handful of requests) or dev/ops. |
-| OQ-53 | content-contact-newsletter | Max length of contact FullName/Enquiry: 5000-char enquiry and 300-char name were accepted; larger sizes untried. | Stage 2 probing, with care: each valid POST mails the store owner. |
-| OQ-54 | content-contact-newsletter | Blog detail URL pattern unknown; `/blog` is 404 but `/blog/rss` exists and robots.txt lists `/blog/tag/` and `/blog/month/`. Is the blog module disabled by configuration? | SmartStore/product owner. |
-| OQ-55 | content-contact-newsletter | Does `GdprConsent` change behaviour? No GDPR checkbox exists in the footer HTML; the JS sends it empty on subscribe and `true` on unsubscribe. | Stage 2 probing. |
-| OQ-56 | content-contact-newsletter | Conflict CONF-01: is `<` in the newsletter email a 500 (content, curl) or accepted (content-contact-newsletter notes, address written `bad<60 a>@example.com`)? | Re-probe once in Stage 2. |
-| OQ-57 | content-contact-newsletter | Unit `content` ran without a browser (curl only). Its unique endpoints (recovery confirm, RSS feeds, sitemap, robots, activation) have no browser confirmation. | Accept as curl-verified, or re-run a short headed pass. |
+24. Do `isCartPage=false` or `isWishlist=true` on `updatecartitem` change behaviour? Raised by cart-quantity and cart-totals-shipping; only the UI values were used. Answer: curl probe (wishlist side effects, so only with an own cart).
+25. Are the 502 Bad Gateway answers (updatecartitem and deletecartitem with non-numeric or out-of-range values, `getstatesbycountryid` with bad ids) produced by the proxy or by the app (unhandled exception)? Raised by cart-quantity, cart-remove and cart-totals-shipping. Answer: host owner.
+26. Is the guest cart keyed by IP + User-Agent only, or does the cookie take part? cart-remove and cart-codes disagree on whether the shared sessions had the same `SMARTSTORE.VISITOR` value. Answer: curl probe (two jars, same UA; one jar, two UAs) before the framework relies on the cookie.
+27. What is in the shared default-User-Agent guest cart and wishlist now, and where did the "Wish List 3" seen by cart-totals-shipping come from? Answer: one default-UA browser check by a human; see SUMMARY.md, state left behind.
+28. Is it intended that the delete response `cartItemCount` counts lines while `cartsummary.CartItemsCount` sums quantities (and `cartsummary` returns 0 for the cart unless `cart=True`)? Answer: host owner / product owner.

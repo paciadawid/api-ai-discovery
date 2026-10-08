@@ -1,0 +1,306 @@
+[
+  {
+    "id": "S01",
+    "class": "parser field misread",
+    "what": "cart parser reads the quantity from the line id capture instead of the quantity capture",
+    "file": "src/domain/cart-page.ts",
+    "layer": "domain",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-02"
+    ],
+    "verdict": null,
+    "firstRun": "KILLED"
+  },
+  {
+    "id": "S02",
+    "class": "parser field misread",
+    "what": "cart parser swaps unit price and line total",
+    "file": "src/domain/cart-page.ts",
+    "layer": "domain",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-02"
+    ],
+    "verdict": null,
+    "firstRun": "KILLED"
+  },
+  {
+    "id": "S03",
+    "class": "parser finds nothing",
+    "what": "cart parser finds no remove links, so no lines are parsed",
+    "file": "src/domain/cart-page.ts",
+    "layer": "domain",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-02"
+    ],
+    "verdict": null,
+    "firstRun": "KILLED"
+  },
+  {
+    "id": "S04",
+    "class": "sample/test-data guard removed",
+    "what": "parseMoney returns 0 on an unparsable amount instead of throwing",
+    "file": "src/domain/pricing.ts",
+    "layer": "domain",
+    "result": "SURVIVED",
+    "killedBy": null,
+    "verdict": "DEFENSIVE",
+    "firstRun": "SURVIVED"
+  },
+  {
+    "id": "S05",
+    "class": "sample/test-data guard removed",
+    "what": "the 'rows on the page = lines parsed' guard in parseCartPage is disabled",
+    "file": "src/domain/cart-page.ts",
+    "layer": "domain",
+    "result": "SURVIVED",
+    "killedBy": null,
+    "verdict": "DEFENSIVE",
+    "firstRun": "SURVIVED"
+  },
+  {
+    "id": "S06",
+    "class": "derived amount off",
+    "what": "unitsIn (sum of quantities) is off by one",
+    "file": "src/domain/pricing.ts",
+    "layer": "domain",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-02"
+    ],
+    "verdict": null,
+    "firstRun": "KILLED"
+  },
+  {
+    "id": "S07",
+    "class": "derived amount off",
+    "what": "subtotalOf is off by one cent",
+    "file": "src/domain/pricing.ts",
+    "layer": "domain",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-02"
+    ],
+    "verdict": null,
+    "firstRun": "KILLED"
+  },
+  {
+    "id": "S08",
+    "class": "request value altered",
+    "what": "add-to-cart sends quantity + 1",
+    "file": "src/api/cart.api.ts",
+    "layer": "api",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-02"
+    ],
+    "verdict": null,
+    "firstRun": "KILLED"
+  },
+  {
+    "id": "S09",
+    "class": "request value altered",
+    "what": "update-item always sends newQuantity = 1",
+    "file": "src/api/cart.api.ts",
+    "layer": "api",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-21"
+    ],
+    "verdict": null,
+    "firstRun": "KILLED"
+  },
+  {
+    "id": "S10",
+    "class": "wrong target/id",
+    "what": "delete-item sends cartItemId = line id + 1",
+    "file": "src/api/cart.api.ts",
+    "layer": "api",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-29"
+    ],
+    "verdict": null,
+    "firstRun": "KILLED"
+  },
+  {
+    "id": "S11",
+    "class": "wrong target/id",
+    "what": "add-to-cart posts to cart type 2 (wishlist) instead of 1 (shopping cart)",
+    "file": "src/api/cart.api.ts",
+    "layer": "api",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-02"
+    ],
+    "verdict": null,
+    "firstRun": "KILLED"
+  },
+  {
+    "id": "S12",
+    "class": "wrong target/id",
+    "what": "counters call drops ?cart=True (server then always answers 0)",
+    "file": "src/api/cart.api.ts",
+    "layer": "api",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-02"
+    ],
+    "verdict": null,
+    "firstRun": "KILLED"
+  },
+  {
+    "id": "S13",
+    "class": "reply flag forced",
+    "what": "every JSON reply is parsed with success forced to true",
+    "file": "src/api/http-client.ts",
+    "layer": "api",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-01"
+    ],
+    "verdict": null,
+    "firstRun": "KILLED"
+  },
+  {
+    "id": "S14",
+    "class": "reply content altered",
+    "what": "cartItemCount is dropped from every JSON reply",
+    "file": "src/api/http-client.ts",
+    "layer": "api",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-29"
+    ],
+    "verdict": null,
+    "firstRun": "KILLED"
+  },
+  {
+    "id": "S15",
+    "class": "reply content altered",
+    "what": "newItemPrice in a JSON reply is replaced by the SubTotal value",
+    "file": "src/api/http-client.ts",
+    "layer": "api",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-21"
+    ],
+    "verdict": null,
+    "firstRun": "KILLED"
+  },
+  {
+    "id": "S16",
+    "class": "matcher constant-true",
+    "what": "toBeAccepted always passes",
+    "file": "src/matchers/index.ts",
+    "layer": "matchers",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-01"
+    ],
+    "verdict": null,
+    "firstRun": "SURVIVED"
+  },
+  {
+    "id": "S17",
+    "class": "matcher ignores one field",
+    "what": "toHaveExactlyTheLines stops comparing the line id",
+    "file": "src/matchers/index.ts",
+    "layer": "matchers",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-21"
+    ],
+    "verdict": null,
+    "firstRun": "SURVIVED"
+  },
+  {
+    "id": "S18",
+    "class": "list matcher checks only part",
+    "what": "toHaveExactlyTheLines checks only the number of lines, not their content",
+    "file": "src/matchers/index.ts",
+    "layer": "matchers",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-21"
+    ],
+    "verdict": null,
+    "firstRun": "SURVIVED"
+  },
+  {
+    "id": "S19",
+    "class": "matcher ignores one field",
+    "what": "toBeRefusedWith stops comparing the refusal message",
+    "file": "src/matchers/index.ts",
+    "layer": "matchers",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-01"
+    ],
+    "verdict": null,
+    "firstRun": "SURVIVED"
+  },
+  {
+    "id": "S20",
+    "class": "matcher ignores one field",
+    "what": "toConfirmRemoval stops comparing cartItemCount",
+    "file": "src/matchers/index.ts",
+    "layer": "matchers",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-29"
+    ],
+    "verdict": null,
+    "firstRun": "SURVIVED"
+  },
+  {
+    "id": "S21",
+    "class": "precondition no-op or weakened",
+    "what": "Guest.hasAnEmptyCart reads the counter and the cart but asserts nothing",
+    "file": "src/actors/guest.ts",
+    "layer": "actors",
+    "result": "SURVIVED",
+    "killedBy": null,
+    "verdict": "DEFENSIVE",
+    "firstRun": "SURVIVED"
+  },
+  {
+    "id": "S22",
+    "class": "precondition no-op or weakened",
+    "what": "Guest.hasInCart stops asserting the read-back quantity of the line",
+    "file": "src/actors/guest.ts",
+    "layer": "actors",
+    "result": "SURVIVED",
+    "killedBy": null,
+    "verdict": "DEFENSIVE",
+    "firstRun": "SURVIVED"
+  },
+  {
+    "id": "S23",
+    "class": "shared identity between actors",
+    "what": "userAgentFor returns the same User-Agent for both guests of a test, so they share one cart",
+    "file": "src/domain/identity.ts",
+    "layer": "fixtures",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-01"
+    ],
+    "verdict": null,
+    "firstRun": "KILLED"
+  },
+  {
+    "id": "S24",
+    "class": "teardown no-op",
+    "what": "Guest.emptiesCart (called by the fixture's finally) does nothing",
+    "file": "src/actors/guest.ts",
+    "layer": "fixtures",
+    "result": "KILLED",
+    "killedBy": [
+      "UC-CART-02"
+    ],
+    "verdict": null,
+    "firstRun": "SURVIVED"
+  }
+]

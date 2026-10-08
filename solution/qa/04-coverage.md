@@ -1,18 +1,30 @@
-# Coverage (Wave 1, 10 tests per Gate 2 decisions in qa/03-selected.md)
+# Coverage: cart (Bearstore / SmartStore), stage 4
 
-Status values: planned, written, passing, failing.
+Input: `qa/03-selected.md` (5 selected of 58). Written by the test writer. Run result: `npm run verify` green, `npx playwright test` 5 passed, 0 failed (2 workers, no retries). Sabotage (stage 6) not run yet.
 
-Migrated to the layered framework (`src/`, `tests/<area>/<capability>.api.spec.ts`); 21 tests, all passing. `tests/support/` no longer exists. UC-CART-96 is now two tests (different User-Agent = the gate; same User-Agent = the OQ-01 probe), UC-AUTH-22 and UC-CATALOG-03 run one test per page/category. UC-CART-01 now uses the Supreme Golfball (product 8) instead of product 32.
+## Automated use cases
 
-| UC ID | Title | Test file | Test title | Endpoints | Status |
-|---|---|---|---|---|---|
-| UC-CART-96 | Visitor isolation probe for cookieless requests with the same User-Agent | tests/cart/visitor-isolation.api.spec.ts | UC-CART-96: visitors with different User-Agents never share a cart; UC-CART-96: visitors with the same User-Agent are probed for a shared cart (OQ-01) | EP-CART-ADD-CART, EP-CART-SUMMARY | passing |
-| UC-CART-01 | Add a simple product to the cart | tests/cart/adding-a-product.api.spec.ts | UC-CART-01: a simple product added to the cart appears as a single line of quantity one | EP-CART-ADD-CART, EP-CART-SUMMARY, EP-CART-VIEW | passing |
-| UC-AUTH-22 | Anonymous access to account pages redirects to login | tests/auth/account-pages-access.api.spec.ts | UC-AUTH-22: opening <page> sends them to the login page and back afterwards (6 tests) | EP-AUTH-INFO-GET, EP-AUTH-ADDRESSES, EP-AUTH-ORDERS, EP-AUTH-ACCOUNT-MISC | passing |
-| UC-AUTH-02 | Valid login redirects to returnUrl and sets the AUTH cookie | tests/auth/signing-in.api.spec.ts | UC-AUTH-02: signing in with valid credentials lands on the requested page with a protected session cookie @needs-account | EP-AUTH-LOGIN, EP-AUTH-INFO-GET | passing |
-| UC-AUTH-07 | Unknown user gets the same message as a wrong password | tests/auth/signing-in.api.spec.ts | UC-AUTH-07: an unknown user and a wrong password are refused with the same message @needs-account | EP-AUTH-LOGIN | passing |
-| UC-CATALOG-01 | Home page renders product tiles | tests/catalog/browsing.api.spec.ts | UC-CATALOG-01: the home page greets them with product tiles and a visit cookie | EP-CATALOG-HOME | passing |
-| UC-CATALOG-03 | Top-level category pages respond 200 with a category title | tests/catalog/browsing.api.spec.ts | UC-CATALOG-03: the <category> category lists products under its own title (6 tests) | EP-CATALOG-CATEGORY | passing |
-| UC-SEARCH-01 | Search returns hits for a known term | tests/search/searching.api.spec.ts | UC-SEARCH-01: a known term returns a result page with hits linking to products | EP-SEARCH-PAGE | passing |
-| UC-SEARCH-32 | Query text is HTML-encoded in the result page | tests/search/searching.api.spec.ts | UC-SEARCH-32: markup typed into the search box is shown encoded, never executed | EP-SEARCH-PAGE | passing |
-| UC-CONTENT-16 | Contact form with all fields empty | tests/content/contact-form.api.spec.ts | UC-CONTENT-16: sending it with every field empty is refused and names the required fields | EP-CONTENT-CONTACT-SEND | passing |
+| UC ID | Gate | Spec file | Test title | Project | Status | Sabotage |
+|---|---|---|---|---|---|---|
+| UC-CART-01 | yes | `tests/cart/isolation.api.spec.ts` | UC-CART-01: two guests never see each other's cart and one cannot remove the other's line | gate | pass | not run (stage 6) |
+| UC-CART-02 | yes | `tests/cart/adding.api.spec.ts` | UC-CART-02: adding three units from the product page puts one line of quantity 3 in the cart | cart | pass | not run (stage 6) |
+| UC-CART-03 | yes | `tests/cart/adding.api.spec.ts` | UC-CART-03: adding the same product again merges into the same line instead of creating a second one | cart | pass | not run (stage 6) |
+| UC-CART-21 | yes | `tests/cart/changing-quantity.api.spec.ts` | UC-CART-21: setting a line to quantity 3 updates the line, the subtotal and the counter together | cart | pass | not run (stage 6) |
+| UC-CART-29 | yes | `tests/cart/removing.api.spec.ts` | UC-CART-29: removing one of three lines removes only that line and updates the subtotal and the counters | cart | pass | not run (stage 6) |
+
+Notes
+- Projects: `gate` (UC-CART-01) and `cart` (`dependencies: ['gate']`). Every spec is matched by exactly one project. No known-issue project: no `@known-issue` case selected.
+- Every test gets its own guest actor from a fixture (own request context and cookie jar, unique User-Agent, own cart emptied in the fixture's `finally`). UC-CART-01 uses two actors.
+- Expected values come from the input: unit prices are constants in `src/domain/products.ts`; subtotal and counter are computed with `subtotalOf` / `unitsIn`. The delete reply `cartItemCount` (lines) and the counter `CartItemsCount` (units, always `cart=True`) are each asserted by their own meaning in UC-CART-29.
+- UC-CART-01 positive controls: the first guest's counter is 2 (so the second guest's 0 means "separate", not "blind"); the same delete call succeeds on the second guest's own line.
+- Quantities 0, negative or malformed are never sent (known HTTP 500/502 behaviours).
+
+## Use cases not automated yet
+
+| UC IDs | Reason |
+|---|---|
+| UC-CART-04 .. 17 | Deferred by user decision (limit to 5): cart-add validation, limits, quick add, gift cards, response shapes |
+| UC-CART-18 .. 20 | Deferred by user decision (limit to 5): cart-view (empty cart, counter semantics, mini-cart) |
+| UC-CART-22 .. 28 | Deferred by user decision (limit to 5): cart-quantity (multi-line update, limits, trimming, foreign or unknown line); 26 and 27 are `@known-issue` candidates |
+| UC-CART-30 .. 36 | Deferred by user decision (limit to 5): cart-remove (last line, twice, refused ids, GET); 35 is a `@known-issue` candidate |
+| UC-CART-37 .. 58 | Deferred by user decision (limit to 5): codes, totals and shipping, currency |

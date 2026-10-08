@@ -1,44 +1,39 @@
 import type { HttpClient, Reply } from './http-client';
-import type { CartActionBody, Counters } from './types';
+import type { AddProductBody, CartCounters, DeleteItemBody, UpdateItemBody } from './types';
 
-/** One method per cart endpoint. No assertions, no business wording: that belongs to the Shopper. */
+const CART_TYPE_SHOPPING_CART = 1;
+
 export class CartApi {
   constructor(private readonly http: HttpClient) {}
 
-  add(productId: number, quantity: number): Promise<Reply<CartActionBody>> {
-    return this.http.postJson(`/cart/addproduct/${productId}/1`, { [`addtocart_${productId}.EnteredQuantity`]: String(quantity) });
-  }
-
-  page(): Promise<Reply<string>> {
-    return this.http.get('/cart');
-  }
-
-  miniCart(): Promise<Reply<string>> {
-    return this.http.postHtml('/shoppingcart/offcanvasshoppingcart');
-  }
-
-  counters(): Promise<Reply<Counters>> {
-    return this.http.postJson('/shoppingcart/cartsummary?cart=True&wishlist=True&compare=True');
-  }
-
-  updateQuantity(lineId: string, quantity: number): Promise<Reply<CartActionBody>> {
-    return this.http.postJson(`/shoppingcart/updatecartitem?sciItemId=${lineId}&isCartPage=True`, {
-      newQuantity: String(quantity),
-      isCartPage: 'true',
-      isWishlist: 'false',
+  /** EP-CART-ADD-PRODUCT: add from the product page. Field name is addtocart_<id>.EnteredQuantity. */
+  addProduct(productId: number, quantity: number): Promise<Reply<AddProductBody>> {
+    return this.http.postForm(`/cart/addproduct/${productId}/${CART_TYPE_SHOPPING_CART}`, {
+      [`addtocart_${productId}.EnteredQuantity`]: quantity,
     });
   }
 
-  remove(lineId: string, from: 'cart' | 'wishlist' = 'cart'): Promise<Reply<CartActionBody>> {
-    const wishlistFlag = from === 'wishlist' ? '&wishlistItem=True' : '';
-    return this.http.postJson(`/shoppingcart/deletecartitem?cartItemId=${lineId}${wishlistFlag}`);
+  /** EP-CART-SUMMARY: header counters. Without cart=True the cart counter is always 0. */
+  counters(): Promise<Reply<CartCounters>> {
+    return this.http.postEmpty('/shoppingcart/cartsummary?cart=True');
   }
 
-  removeUsingGet(lineId: string): Promise<Reply<string>> {
-    return this.http.get(`/shoppingcart/deletecartitem?cartItemId=${lineId}`);
+  /** EP-CART-VIEW: the cart page (HTML). */
+  view(): Promise<Reply<string>> {
+    return this.http.get('/cart');
   }
 
-  move(lineId: string, from: 'ShoppingCart' | 'Wishlist'): Promise<Reply<CartActionBody>> {
-    return this.http.postJson(`/shoppingcart/moveitembetweencartandwishlist?cartItemId=${lineId}&cartType=${from}&isCartPage=True`);
+  /** EP-CART-UPDATE-ITEM: sciItemId in the query, newQuantity in a form body. */
+  updateItem(lineId: number, newQuantity: number): Promise<Reply<UpdateItemBody>> {
+    return this.http.postForm(`/shoppingcart/updatecartitem?sciItemId=${lineId}&isCartPage=True`, {
+      newQuantity,
+      isCartPage: true,
+      isWishlist: false,
+    });
+  }
+
+  /** EP-CART-REMOVE: cartItemId in the query, empty body. */
+  deleteItem(lineId: number): Promise<Reply<DeleteItemBody>> {
+    return this.http.postEmpty(`/shoppingcart/deletecartitem?cartItemId=${lineId}`);
   }
 }

@@ -1,0 +1,226 @@
+[
+  {
+    "id": "EP-CART-VIEW",
+    "area": "cart",
+    "unit": "cart-totals-shipping",
+    "purpose": "Render the shopping cart page as server-side HTML including the totals table (Subtotal, Shipping, Tax, Total) of the visitor's own cart.",
+    "method": "GET",
+    "path": "/cart",
+    "query": [],
+    "contentType": null,
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["SMARTSTORE.VISITOR (refreshed, 1 year)", "ASP.NET_SessionId (first response only)"],
+      "bodySignal": "HTML with <div id=\"order-totals\"> rows cart-summary-subtotal / cart-summary-shipping / cart-summary-tax / cart-summary-total; per line input name=itemquantity<cartItemId>; 'Your Shopping Cart is empty!' alert when no lines; an empty-cart page has no totals table and no Estimate shipping panel"
+    },
+    "failure": {
+      "status": null,
+      "bodySignal": "none observed; anonymous GET always 200"
+    },
+    "verified": true,
+    "stateChanging": false
+  },
+  {
+    "id": "EP-CART-ESTIMATE-SHIPPING",
+    "area": "cart",
+    "unit": "cart-totals-shipping",
+    "purpose": "Request a shipping estimate for a country, state and zip; the whole cart form is posted to /cart with the estimateshipping button and the answer is the re-rendered cart page (HTTP 200, no redirect).",
+    "method": "POST",
+    "path": "/cart",
+    "query": [],
+    "contentType": "multipart/form-data (browser); application/x-www-form-urlencoded also accepted",
+    "bodyFields": [
+      { "name": "estimateshipping", "example": "Estimate shipping", "required": true, "description": "Submit button name; selects the estimate action (without it the same POST /cart does other cart actions)." },
+      { "name": "CountryId", "example": "1", "required": false, "description": "Country id from the CountryId select (3 Germany, 4 Austria, 5 Switzerland, 1 United States, 2 Canada, 86+ others). Non-numeric gives a validation message; 0 / unknown / missing still return the same shipping options." },
+      { "name": "StateProvinceId", "example": "0", "required": false, "description": "State id from /country/getstatesbycountryid; 0 means 'Other (Non US)'. Empty string was sent by the browser for US before the states list loaded." },
+      { "name": "ZipPostalCode", "example": "10001", "required": false, "description": "Free text zip; never validated (abc, empty and 10001 all accepted)." },
+      { "name": "itemquantity{{cartItemId}}", "example": "3", "required": false, "description": "One field per cart line carrying its current quantity (id from the cart page); the browser always sends them, the server did not require them." },
+      { "name": "discountcouponcode", "example": "", "required": false, "description": "Discount code box content; sent empty by the browser." },
+      { "name": "giftcardcouponcode", "example": "", "required": false, "description": "Gift card code box content; sent empty by the browser." }
+    ],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["SMARTSTORE.VISITOR (refreshed)"],
+      "bodySignal": "HTML cart page; panel #cart-action-shipping-body shows an alert-success block listing options 'In-Store Pickup ($0.00)' and 'By Ground ($0.00)' and the posted country/state/zip selected; totals unchanged (Shipping $0.00, Tax $0.00). The estimate is not stored: a following GET /cart shows the panel empty again ('Enter your destination to get a shipping estimate')."
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "CountryId=abc: field-validation-error 'The value 'abc' is not valid for 'Country'.' (still 200 with the options). Empty cart: 200 with 'Your Shopping Cart is empty!' and no panel. Gift-card-only cart: 200, no estimate panel at all, Shipping row reads 'Not required'."
+    },
+    "verified": true,
+    "stateChanging": false
+  },
+  {
+    "id": "EP-CART-STATES",
+    "area": "cart",
+    "unit": "cart-totals-shipping",
+    "purpose": "Load the state/province list for the selected country when the Country select changes in the Estimate shipping panel.",
+    "method": "GET",
+    "path": "/country/getstatesbycountryid",
+    "query": [
+      { "name": "countryId", "example": "1", "required": true, "description": "Country id (1 = United States: 62 entries; 3 = Germany: single entry id 0 'Other (Non US)')." },
+      { "name": "addEmptyStateIfRequired", "example": "true", "required": false, "description": "Add the 'Other (Non US)' entry for countries without states." },
+      { "name": "_", "example": "1791451746042", "required": false, "description": "jQuery cache-buster timestamp." }
+    ],
+    "contentType": null,
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": [],
+      "bodySignal": "JSON array of {id, name} with a $type field, e.g. [{\"id\":0,\"name\":\"Other (Non US)\"}]"
+    },
+    "failure": {
+      "status": 502,
+      "bodySignal": "countryId=abc, countryId=99999 or missing countryId: HTML '502 Bad Gateway' (proxy page, not JSON), reproduced twice"
+    },
+    "verified": true,
+    "stateChanging": false
+  },
+  {
+    "id": "EP-CART-UPDATE-ITEM",
+    "area": "cart",
+    "unit": "cart-totals-shipping",
+    "purpose": "Change the quantity of one cart line and return the refreshed subtotal, line HTML and totals HTML (used here to see how totals follow quantity).",
+    "method": "POST",
+    "path": "/shoppingcart/updatecartitem",
+    "query": [
+      { "name": "sciItemId", "example": "{{cartItemId}}", "required": true, "description": "Cart line id (same number as in the itemquantity<id> field)." },
+      { "name": "isCartPage", "example": "True", "required": false, "description": "Cart page flag sent by the UI." }
+    ],
+    "contentType": "application/x-www-form-urlencoded; charset=UTF-8",
+    "bodyFields": [
+      { "name": "newQuantity", "example": "2", "required": true, "description": "New quantity for the line." },
+      { "name": "isCartPage", "example": "true", "required": false, "description": "Cart page flag." },
+      { "name": "isWishlist", "example": "false", "required": false, "description": "Wishlist flag." }
+    ],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["SMARTSTORE.VISITOR (refreshed)"],
+      "bodySignal": "JSON {success:true, SubTotal:'$958.00 excl tax', message:[], cartHtml, totalsHtml (Subtotal/Shipping/Tax/Total rows), displayCheckoutButtons:true, newItemPrice:'$479.00 excl tax' (unit price for the new quantity)}"
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "qty 10001: 200 with success:false and message ['The maximum quantity allowed for purchase is 10000.'], SubTotal unchanged. qty 0 and -1: line is DELETED but the response is HTTP 500 JSON {error:true, controller:'shoppingcart', action:'updatecartitem', message:'Object reference not set to an instance of an object.'}. qty abc and 2.5: HTTP 502 Bad Gateway HTML. (Quantity semantics belong to unit cart-quantity; recorded because they change totals.)"
+    },
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-ADD-PRODUCT",
+    "area": "cart",
+    "unit": "cart-totals-shipping",
+    "purpose": "Seed the own session cart with a product (regular or gift card) so totals can be observed; full behaviour belongs to unit cart-add.",
+    "method": "POST",
+    "path": "/cart/addproduct/{{productId}}/1",
+    "query": [],
+    "contentType": "application/x-www-form-urlencoded; charset=UTF-8 (body-less POST needs empty data and X-Requested-With: XMLHttpRequest)",
+    "bodyFields": [
+      { "name": "addtocart_{{productId}}.AddToCart.EnteredQuantity", "example": "2", "required": false, "description": "Quantity for gift cards (the form value won the /1 in the path: 2 cards gave a $50 subtotal)." },
+      { "name": "giftcard{{productId}}-0-.RecipientName", "example": "QA Recipient", "required": false, "description": "Gift card only." },
+      { "name": "giftcard{{productId}}-0-.RecipientEmail", "example": "qa-recipient@example.com", "required": false, "description": "Gift card only." },
+      { "name": "giftcard{{productId}}-0-.SenderName", "example": "QA Sender", "required": false, "description": "Gift card only." },
+      { "name": "giftcard{{productId}}-0-.SenderEmail", "example": "qa-sender@example.com", "required": false, "description": "Gift card only." },
+      { "name": "giftcard{{productId}}-0-.Message", "example": "", "required": false, "description": "Gift card only." }
+    ],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["SMARTSTORE.VISITOR (refreshed)"],
+      "bodySignal": "JSON {success:true}. Product ids used: 4 Certina DS Podium Big Size $479, 21 $25 Virtual Gift Card, 6 Titleist Pro V1x $2.10, 8 Supreme Golfball $1.90, 14 High School Game Basketball $29.95."
+    },
+    "failure": {
+      "status": null,
+      "bodySignal": "not probed here (cart-add unit)"
+    },
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-DELETE-ITEM",
+    "area": "cart",
+    "unit": "cart-totals-shipping",
+    "purpose": "Remove one cart line (used here to clean up) and return the new item count and totals HTML.",
+    "method": "POST",
+    "path": "/shoppingcart/deletecartitem",
+    "query": [
+      { "name": "cartItemId", "example": "{{cartItemId}}", "required": true, "description": "Cart line id." }
+    ],
+    "contentType": "application/x-www-form-urlencoded (empty body, X-Requested-With: XMLHttpRequest)",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["SMARTSTORE.VISITOR (refreshed)"],
+      "bodySignal": "JSON {cartItemCount:N, success:true, message:'The product has been removed.', cartHtml, totalsHtml, displayCheckoutButtons}; last line gives cartItemCount 0 and cartHtml '\\n\\n\\n'"
+    },
+    "failure": {
+      "status": null,
+      "bodySignal": "not probed here (cart-remove unit)"
+    },
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-CHANGE-CURRENCY",
+    "area": "cart",
+    "unit": "cart-totals-shipping",
+    "purpose": "Switch the display currency of the visitor (1 USD, 2 GBP, 3 AUD, 4 CAD); every price and total of the cart is re-rendered converted.",
+    "method": "GET",
+    "path": "/changecurrency/{{currencyId}}",
+    "query": [
+      { "name": "returnUrl", "example": "%2fcart", "required": false, "description": "Where to redirect after the switch; an external URL or missing value redirects to '/'." }
+    ],
+    "contentType": null,
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 302,
+      "location": "/cart (the returnUrl)",
+      "setCookies": ["SMARTSTORE.VISITOR (refreshed); the currency is kept server side per visitor, no currency cookie"],
+      "bodySignal": "no body; next GET /cart shows converted amounts: GBP x0.61 with HTML entity &#163; in curl output, AUD x0.94, CAD x0.98 (AUD and CAD both print '$')"
+    },
+    "failure": {
+      "status": 302,
+      "bodySignal": "unknown numeric id 99: 302 to /cart, currency unchanged; non-numeric id abc: 404; returnUrl=https://example.org/: 302 to '/' (no open redirect)"
+    },
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-SUMMARY",
+    "area": "cart",
+    "unit": "cart-totals-shipping",
+    "purpose": "Return the counters shown in the header (cart, wishlist, compare item counts); the page calls it after every cart action.",
+    "method": "POST",
+    "path": "/shoppingcart/cartsummary",
+    "query": [
+      { "name": "cart", "example": "True", "required": false, "description": "Include cart count (also wishlist=True, compare=True)." }
+    ],
+    "contentType": "application/x-www-form-urlencoded (empty body, X-Requested-With: XMLHttpRequest)",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": [],
+      "bodySignal": "JSON {CartItemsCount, WishlistItemsCount, CompareItemsCount} with a $type field"
+    },
+    "failure": {
+      "status": null,
+      "bodySignal": "not probed"
+    },
+    "verified": true,
+    "stateChanging": false
+  }
+]

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QA stage visuals: QA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="vis-stage" content="index">
+<meta name="vis-title" content="QA stage visuals">
+<meta name="vis-generated" content="2026-10-08 11:46 UTC">
+<meta name="vis-headline" content="8 of 8 stage pages generated">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2330;--muted:#5d6879;--line:#dde2ea;--given:#5b6472;--when:#2563eb;--then:#15803d;--bug:#92400e;--bugbg:#fff4e0;--ok:#166534;--okbg:#e6f6ec;--bad:#991b1b;--badbg:#fdeaea;--warn:#92400e;--warnbg:#fff4e0;--info:#1e40af;--infobg:#e8effd;
+--get:#0e7490;--post:#7c3aed;--put:#b45309;--delete:#b91c1c;--patch:#4d7c0f}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header.top{padding:24px 32px 8px;max-width:1100px;margin:0 auto}
+header.top h1{margin:0 0 4px;font-size:26px}
+header.top .meta{color:var(--muted);font-size:13px;margin:2px 0}
+header.top .meta code{background:#eef1f6;padding:1px 5px;border-radius:4px}
+header.top a{color:var(--info)}
+main{max-width:1100px;margin:0 auto;padding:8px 32px 48px}
+h2{margin:30px 0 12px;font-size:18px}h3{font-size:15px;margin:16px 0 6px}h4,h5,h6{font-size:14px;margin:12px 0 4px}
+code,.ep{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+p{margin:6px 0}pre{background:#eef1f6;padding:10px 12px;border-radius:8px;overflow:auto;font-size:12.5px;max-height:480px}
+blockquote{margin:8px 0;padding:4px 12px;border-left:3px solid var(--line);color:var(--muted)}
+.overview{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.tile b{display:block;font-size:22px}.tile span{color:var(--muted);font-size:13px}
+.tile.bad{border-color:#e7a3a3;background:var(--badbg)}.tile.ok{border-color:#9fd3b0}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:14px}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#eef1f6;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+tr:last-child td{border-bottom:0}.scroll{overflow-x:auto}
+.m{display:inline-block;min-width:46px;text-align:center;padding:1px 6px;border-radius:4px;color:#fff;font-size:11px;font-weight:700}
+.m.GET{background:var(--get)}.m.POST{background:var(--post)}.m.PUT{background:var(--put)}.m.DELETE{background:var(--delete)}.m.PATCH{background:var(--patch)}
+.chip{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:99px;border:1px solid var(--line);background:#eef1f6;color:var(--ink);white-space:nowrap;margin:1px 2px 1px 0}
+.chip.ok{background:var(--okbg);color:var(--ok);border-color:#9fd3b0}.chip.bad{background:var(--badbg);color:var(--bad);border-color:#e7a3a3}
+.chip.warn{background:var(--warnbg);color:var(--warn);border-color:#f0cf98}.chip.info{background:var(--infobg);color:var(--info);border-color:#b5c8f3}
+.note{background:var(--warnbg);color:var(--warn);border:1px solid #f0cf98;border-radius:8px;padding:8px 12px;margin:10px 0}
+.note b{display:inline-block;width:18px;height:18px;line-height:18px;text-align:center;border-radius:50%;background:var(--warn);color:#fff;margin-right:6px;font-size:12px}
+details.card,details.test{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:10px 0;overflow:hidden}
+details.card>summary,details.test>summary{cursor:pointer;padding:12px 16px;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details.card>summary::before,details.test>summary::before{content:"\25B8";color:var(--muted)}
+details[open].card>summary::before,details[open].test>summary::before{content:"\25BE"}
+details .body{padding:4px 16px 16px;border-top:1px solid var(--line)}
+details.raw{margin:8px 0;color:var(--muted);font-size:13px}details.raw summary{cursor:pointer}
+.uc{font-weight:700;white-space:nowrap}.title{flex:1;min-width:200px}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:14px 0 6px}
+.step{border-radius:8px;padding:5px 10px;color:#fff;font-size:12.5px;max-width:330px}
+.step small{display:block;opacity:.92;font-family:ui-monospace,Menlo,monospace;font-size:11px}
+.step.given{background:var(--given)}.step.when{background:var(--when)}.step.then{background:var(--then)}
+.step b{font-size:10.5px;letter-spacing:.05em;margin-right:4px;opacity:.95}
+.arrow{color:var(--muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:8px 0}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+ul.checks{margin:8px 0 0;padding:0;list-style:none}ul.checks li{padding:4px 0 4px 26px;position:relative}
+ul.checks li::before{content:"\2713";position:absolute;left:4px;color:var(--then);font-weight:700}
+.sub{margin:14px 0 4px;font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.matrix td,.matrix th{text-align:center;padding:6px 8px}.matrix td:first-child,.matrix th:first-child{text-align:left}
+.dot{font-size:15px;line-height:1}.dot.setup{color:var(--given)}.dot.main{color:var(--when)}
+.barwrap{display:flex;align-items:center;gap:8px}.bar{display:inline-block;flex:1;min-width:80px;height:12px;background:#e3e7ee;border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--when)}.bar i.ok{background:#2e9d5b}.bar i.bad{background:#d14343}.bar i.sel{background:var(--when)}.bar i.def{background:#8a94a6}
+.barlabel{font-size:12.5px;white-space:nowrap;min-width:64px}
+.rank{display:grid;grid-template-columns:34px 112px minmax(160px,1.2fr) minmax(140px,2fr) 112px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.rank .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rt td.n,.rt th:nth-child(n+5):nth-last-child(n+3){text-align:center}.factors{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:8px 0;font-size:13px;color:var(--muted)}.factors dt{font-weight:700;color:var(--ink);text-align:center;min-width:22px;background:#eef1f6;border-radius:5px}.factors dd{margin:0}.factors dd b{color:var(--ink)}.rt td{vertical-align:middle}.rt td:nth-child(2),.rt td:nth-child(4){white-space:nowrap}.rt td:nth-child(3){width:42%}.rt td.n{width:34px;padding-left:6px;padding-right:6px}.rt td.sc{min-width:150px}.rt td.sc .bar{min-width:70px}.rt tr.def td{color:#4a5568}.rt tr.cutrow td{background:#fff7e0;color:var(--muted);font-size:12px;text-align:center;padding:3px}.cut{border-top:2px dashed var(--muted);margin:4px 0;color:var(--muted);font-size:12px;padding-top:2px}
+.banner{border-radius:12px;padding:16px 20px;margin:16px 0;border:1px solid var(--line);background:var(--card)}
+.banner.ok{background:var(--okbg);border-color:#9fd3b0}.banner.bad{background:var(--badbg);border-color:#e7a3a3}.banner.warn{background:var(--warnbg);border-color:#f0cf98}
+.banner .lead{font-size:17px;font-weight:700;margin-bottom:4px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px}
+.cardbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.cardbox h3{margin-top:0}.cardbox .item{border-top:1px solid var(--line);padding:8px 0}.cardbox .item:first-of-type{border-top:0}
+.metric .row{font-size:13.5px;color:var(--muted)}.metric .row b{color:var(--ink)}.metric .delta{font-weight:700;margin-top:4px}
+.heat th{text-transform:none;letter-spacing:0;font-size:11px}.heat td,.heat th{padding:6px;font-size:11.5px;vertical-align:top;text-align:left;min-width:78px}
+.heat td.hit{background:var(--okbg)}.heat td.miss{background:var(--badbg)}.heat td.empty{background:#f3f4f7;color:#9aa3b2;text-align:center}
+.heat .chip{display:inline-block;white-space:nowrap;margin:2px 3px 2px 0;font-size:11px;border-radius:6px}.heat th[scope=row]{min-width:190px;font-weight:600}.groups{display:grid;gap:12px}
+.stages{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+a.stagecard{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+a.stagecard:hover{border-color:var(--when)}.stagecard.missing{opacity:.75;border-style:dashed}
+.stagecard h3{margin:0 0 4px}.stagecard .gen{color:var(--muted);font-size:12.5px}
+.muted{color:var(--muted)}.small{font-size:12.5px}.sr{position:absolute;left:-9999px}
+footer{color:var(--muted);font-size:13px;margin:32px auto;max-width:1100px;padding:0 32px}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>QA stage visuals: QA</h1>
+  <p class="meta">Feature <b>QA</b> &middot; generated 2026-10-08 11:46 UTC &middot; <a href="index.html">all stages (index.html)</a></p>
+  <p class="meta">Sources: <code>qa/visuals/01-scout.html</code> <code>qa/visuals/02-discovery.html</code> <code>qa/visuals/03-usecases.html</code> <code>qa/visuals/04-selected.html</code> <code>qa/visuals/05-tests.html</code> <code>qa/visuals/06-run.html</code> <code>qa/visuals/07-sabotage.html</code> <code>qa/visuals/08-strengthen.html</code></p>
+</header>
+<main>
+<section><h2>Stages</h2><div class="stages"><a class="stagecard" href="01-scout.html"><h3>01 &middot; Scout: discovery plan <span class="chip ok">available</span></h3><p class="gen">generated 2026-10-08 09:26 UTC</p><p>5 areas, 5 units (1 x S, 4 x M), 5 excluded, 5 chosen at the scope gate</p></a><a class="stagecard" href="02-discovery.html"><h3>02 &middot; Discovery: endpoints and flows <span class="chip ok">available</span></h3><p class="gen">generated 2026-10-08 09:51 UTC</p><p>15 endpoints (15 verified), 25 flows, 12 risks, 28 open questions</p></a><a class="stagecard" href="03-usecases.html"><h3>03 &middot; Use cases <span class="chip ok">available</span></h3><p class="gen">generated 2026-10-08 09:59 UTC</p><p>58 use cases: 9 happy-path, 19 negative, 9 boundary, 4 security, 11 state, 6 contract</p></a><a class="stagecard" href="04-selected.html"><h3>04 &middot; Selected use cases <span class="chip ok">available</span></h3><p class="gen">generated 2026-10-08 10:11 UTC</p><p>5 of 58 use cases selected, top score 8.00</p></a><a class="stagecard" href="05-tests.html"><h3>05 &middot; Test map <span class="chip ok">available</span></h3><p class="gen">generated 2026-10-08 11:45 UTC</p><p>5 live tests (5 use cases, 36 checks), 0 offline unit tests, 5 endpoints exercised</p></a><a class="stagecard" href="06-run.html"><h3>06 &middot; Run report <span class="chip ok">available</span></h3><p class="gen">generated 2026-10-08 11:46 UTC</p><p>all passing; All 5 of 5 live gate tests pass and none of the 5 selected use cases is red; no application bugs found. Sabotage killed 14 of 24 mutations on the…</p></a><a class="stagecard" href="07-sabotage.html"><h3>07 &middot; Sabotage: do the tests catch bugs? <span class="chip ok">available</span></h3><p class="gen">generated 2026-10-08 11:44 UTC</p><p>24 mutations: 20 killed, 4 survived (S04, S05, S21, S22); 4 accepted as defensive</p></a><a class="stagecard" href="08-strengthen.html"><h3>08 &middot; Strengthen: what improved <span class="chip ok">available</span></h3><p class="gen">generated 2026-10-08 11:46 UTC</p><p>10 gaps closed, 20 of 24 mutations killed (was 14); The round closed 6 of the 10 survivors (S16 to S20, S24) with live assertions and one stricter teardown, and left 4 as DEFENSIVE…</p></a></div></section>
+</main>
+<footer>Generated by <code>scripts/visualize.mjs</code> from the files listed above. No network, no AI.</footer>
+</body>
+</html>

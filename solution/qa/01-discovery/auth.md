@@ -1,70 +1,44 @@
-# Auth model (consolidated)
+# Auth model (consolidated, scope: cart)
 
-Target: https://bearstore-testsite.smartbear.com (SmartStore, ASP.NET MVC 5.2 on IIS 10, behind an AWS load balancer). Sources: auth area (primary), plus auth observations from catalog, search, cart-compare-wishlist and content-contact-newsletter. No statement below is new; contradictions are listed at the end.
+Target: https://bearstore-testsite.smartbear.com (SmartStore). Sources: the auth probe and scout notes in `areas.md`, plus the "Auth observations" of the five cart units. No login was needed or attempted; no credentials were used. Nothing below is new; contradictions are listed at the end.
 
-## Identity layers
+## Identity: an anonymous visitor, nothing else observed
 
-1. Anonymous visitor: every response sets/re-sends `SMARTSTORE.VISITOR` (a GUID). Cart, wishlist, currency choice, and the guest customer hang off this GUID.
-2. Authenticated customer: `SMARTSTORE.AUTH` forms-auth ticket, created by login or registration.
-3. Cart, wishlist and compare work for visitors without any login; checkout is reachable as a guest ("Checkout as Guest").
+1. Every visitor is anonymous. The first request (even a cookieless `GET /cart`) creates the visitor; no sign-in step exists in the cart scope.
+2. The visitor owns the cart, the wishlist (cart type 2 of the add endpoint), the compare list counter and the chosen display currency. Currency is stored server side per visitor: there is no currency cookie (`/changecurrency/<id>` sets it).
+3. **The guest cart is keyed by IP + User-Agent, not by the cookie.** A request with a fresh cookie jar and the same User-Agent from the same IP sees the same cart (cart-add: 16 units seen); a fresh jar with another User-Agent sees an empty cart. Parallel headed Chrome sessions with the default User-Agent from one machine therefore share ONE cart. See "Conflicts" for what the units disagree on.
+4. Cart line ids (`cartItemId` / `sciItemId`) are global increasing integers shared by all visitors (169014 ... 169044 seen), not stable between runs, and scoped to the caller's cart: another visitor's id is refused (`deletecartitem`: 200 `success:false` generic message; `updatecartitem`: HTTP 500 JSON error), the other cart is untouched.
 
-## Session creation
+## Session creation and destruction
 
-| action | request | result |
+| action | observed |
+|---|---|
+| Creation | Implicit on the first request: `SMARTSTORE.VISITOR` is issued, `ASP.NET_SessionId` on the first response only. No login, no token exchange. |
+| Re-issue | `SMARTSTORE.VISITOR` is re-sent with a refreshed 1-year expiry on almost every response (add, update, delete, `POST /cart`, `GET /cart`, currency change). cartsummary, offcanvasshoppingcart and states responses were recorded with and without it (see Conflicts). |
+| Destruction | None observed in the cart scope. A cart is emptied only by removing its lines (`deletecartitem`) or by `updatecartitem` with quantity 0 or negative (which also answers HTTP 500). Applied codes: removal unobserved. |
+| Login / logout / registration | Not explored. The cart page links to `/login?returnUrl=%2Fcart`; the form exists but was not used. |
+
+## Cookies (anonymous visitor)
+
+| cookie | flags observed | note |
 |---|---|---|
-| Login | `POST /login?returnUrl=<local path>`, urlencoded `UsernameOrEmail` (email or username; email case-insensitive), `Password` (case-sensitive), `RememberMe` (`false`; checkbox sends `true&false`) | 302 to the local returnUrl, else `/`. Sets `SMARTSTORE.AUTH`. |
-| Login failure | wrong password, unknown user, empty fields | 200, form re-rendered, uniform message "Login was unsuccessful ... The credentials provided are incorrect". No cookie. |
-| Register | `GET /register` then `POST /register?returnUrl=` with `__RequestVerificationToken` (form value and cookie), FirstName, LastName, DateOfBirthDay/Month/Year, Email, Username (required server-side), Password (6-500), ConfirmPassword, Company, `register-button` | 302 to `/registerresult/1?returnUrl=...` and the user is logged in (persistent AUTH cookie). Validation errors: 200. Missing token: 500. |
-| returnUrl | local paths are honoured; `https://evil.example.com/` and `//evil.example.com` fall back to `/` | No open redirect. Protected pages redirect with `ReturnUrl` (capital R); both spellings accepted. |
-| Guest checkout | `/login?checkoutAsGuest=True&returnUrl=%2Fcart`, then `GET /checkout` | works without account; `GET /checkout` with a non-empty cart goes straight to `/checkout/billingaddress`. |
+| `SMARTSTORE.VISITOR` | HttpOnly, Secure, SameSite=Lax, 1 year (cart-add, scout) | carries the visitor identity; replays with a plain cookie jar (this cookie + `ASP.NET_SessionId`) work, no token needed |
+| `ASP.NET_SessionId` | HttpOnly, SameSite=Lax | first response only |
+| `SmartStore.RecentlyViewedProducts` | not HttpOnly (scout) | irrelevant for the cart |
 
-## Session destruction
+## CSRF / anti-forgery and headers
 
-`GET /logout` (also works anonymously and with a stale cookie) returns 302 `/` and `Set-Cookie: SMARTSTORE.AUTH=; expires=1999`. `POST /logout` without body gives 411. Logout is state-changing over GET. The old `SMARTSTORE.AUTH` value still authenticates after logout (`/customer/info` returns 200): no server-side invalidation.
+- No anti-forgery token anywhere in the cart scope: the cart form (`POST /cart`, multipart, one form holding quantity boxes, both code panels, estimate-shipping fields and the checkout submit) has no token field; the XHR mutations (`addproduct`, `addproductsimple`, `updatecartitem`, `deletecartitem`) send none. A plain cookie jar is enough.
+- `X-Requested-With: XMLHttpRequest` is sent by the page. Verified NOT required for add (cart-add), `updatecartitem` (cart-quantity) and `POST /cart` (cart-codes). Not tested for `deletecartitem` (cart-remove).
+- A body-less POST needs an empty body (`data: ''` / `-d ''`), otherwise HTTP 411 Length Required (add, cartsummary, deletecartitem, updatecartitem).
+- GET on the POST-only endpoints answers 404 (not 405) and does not change state (verified for delete, update, add, cartsummary).
 
-## Cookies
+## Protected paths
 
-| cookie | set by | flags observed | lifetime |
-|---|---|---|---|
-| `SMARTSTORE.VISITOR` | first response of any page, re-sent on every response | Secure, HttpOnly, SameSite=Lax, path /, domain bearstore-testsite.smartbear.com | 1 year (sliding). Same value is returned to cookieless clients with same IP + User-Agent (catalog, content). A forged value is replaced. |
-| `SMARTSTORE.AUTH` | login, register | HttpOnly, SameSite=Lax, NOT Secure | session cookie when RememberMe=false; +30 days when RememberMe=true; always +30 days after register |
-| `__RequestVerificationToken` | most GETs (cookie half of anti-forgery) | Secure, HttpOnly | not stated |
-| `ASP.NET_SessionId` | lazily: first use of `v=` or `s=` (catalog, search), `/logout`, browser cart flow | HttpOnly, SameSite=Lax (Secure not stated) | not stated. Holds view mode and page size. |
-| `sm.CompareProducts` | `addproducttocompare` | Secure, HttpOnly | +10 days. Compare list lives only in this cookie. |
-| `SmartStore.RecentlyViewedProducts` | product page views | Secure, HttpOnly, SameSite=Lax | +10 days; max 8 ids; forgeable by hand. |
+All 15 consolidated endpoints are `authRequired: false` and were used anonymously. Nothing in the cart scope is protected. Not reached: checkout (the Checkout button triggers a hidden `startcheckout` submit of `POST /cart`, seen statically only; excluded by scope), `/login`, registration, customer pages.
 
-No currency cookie: currency is stored server side per visitor GUID.
+## Conflicts between units
 
-## CSRF / anti-forgery
-
-| endpoint | token | note |
-|---|---|---|
-| `POST /login` | none (not in form, not required) | confirmed by posting without any |
-| `POST /register`, `POST /customer/info`, `POST /customer/changepassword` | required (form field and cookie) | missing token returns 500, not 400/403; applies to anonymous callers too |
-| `POST /customer/addressadd`, `/customer/addressedit/{id}`, `GET /customer/addressdelete/{id}` | none | delete is a GET |
-| `POST /customer/passwordrecovery` | none | needs the `send-email` marker field or it silently re-renders |
-| `POST /contactus`, `POST /newsletter/subscribe`, `POST /search`, `POST /instantsearch` | none | no captcha either |
-| cart, wishlist, compare AJAX (`/cart/addproduct`, `/shoppingcart/*`, `/catalog/*compare*`) | none | compare add/remove/clear also work via GET |
-| `POST /product/reviews/{id}` | token present in form | not exercised |
-| `GET /logout`, `GET /changecurrency/{id}` | n/a | state changes over GET |
-
-## Protected and open paths
-
-Protected (anonymous gets 302 `/login?ReturnUrl=<lowercase-encoded path>`): `/customer/info`, `/customer/addresses`, `/customer/orders`, `/customer/addressadd`, `/customer/addressedit/{id}`, `/customer/addressdelete/{id}`, `/customer/changepassword`, `/customer/downloadableproducts`. Authenticated, these return 200 with title "Shop. Account". Address ownership is enforced (foreign or unknown id: 302 `/customer/addresses`, nothing changed). Another visitor's cart item ids cannot be updated or deleted (no IDOR found).
-
-Not protected (by design or by omission): `/customer/backinstocksubscriptions` (200 anonymously, inconsistent with its siblings), `/customer` (404), `/registerresult/1`, `/login` and `/register` while logged in (200, no redirect), all catalog, search, content, cart, wishlist, compare and checkout-entry pages. Public wishlist `/wishlist/{guid}` is readable without auth, and the GUID is the `SMARTSTORE.VISITOR` value, so the link leaks the HttpOnly identity cookie (see SUMMARY.md, risks).
-
-## Enumeration and disclosure
-
-Login is uniform. Password recovery ("Email not found.") and registration ("The specified email already exists", "The specified username already exists") allow account enumeration. Newsletter replies do not distinguish known addresses. Headers disclose `Microsoft-IIS/10.0`, `X-AspNetMvc-Version: 5.2`, `X-AspNet-Version: 4.0.30319`, `X-Powered-By: ASP.NET`, meta `generator: Smartstore 4.2.0.0`; no HSTS, CSP or X-Frame-Options observed (content-contact-newsletter). The 502/414 pages come from another layer without these headers.
-
-## Credentials and test accounts
-
-`BEARSTORE_EMAIL` / `BEARSTORE_PASSWORD` were not set and `tests/support/auth.ts` does not exist. Discoverers therefore registered throwaway @example.com accounts (`qa-auth-1790932958@example.com`, `qa-auth-1790932958b@example.com`, `qa-cart-1790933638@example.com`). Their passwords were not saved to artifacts (the auth discoverer kept its passwords in /tmp scratch files); the accounts cannot be deleted through the UI and are not reusable by tests.
-
-## Contradictions and corrections to areas.md
-
-- areas.md: wishlist and checkout "login likely required". Observed: both work anonymously (cart-compare-wishlist).
-- areas.md: session cookie names after login unknown. Now known (table above).
-- areas.md: only `SMARTSTORE.VISITOR` exists before login. Confirmed for a first visit; `ASP.NET_SessionId`, `sm.CompareProducts`, `SmartStore.RecentlyViewedProducts` appear later with use.
-- Visitor GUID: auth says the cookie is unchanged by login; cart-compare-wishlist recorded one GUID change between two page loads with a lost cart. Unresolved (open-questions OQ-01).
+- Cookie vs User-Agent: cart-remove saw an identical `SMARTSTORE.VISITOR` value in the sessions that shared a cart; cart-codes states the sessions had different `SMARTSTORE.VISITOR` values and still shared one cart, so "the cookie alone did not separate them". Both agree the unique User-Agent separates carts; whether the server also hands the same visitor GUID to cookieless clients with the same IP + User-Agent is unresolved.
+- cart-add reported that its default-User-Agent browser cart held only its own lines; cart-codes' browser cart contained lines 169016 and 169025, which cart-add lists as its own browser lines. cart-add's browser observations are therefore unreliable (see SUMMARY.md, risk 1).
+- Set-Cookie on cartsummary / offcanvasshoppingcart: cart-remove recorded `SMARTSTORE.VISITOR` re-issued; cart-add, cart-quantity and cart-totals-shipping recorded none. Not relevant for tests.

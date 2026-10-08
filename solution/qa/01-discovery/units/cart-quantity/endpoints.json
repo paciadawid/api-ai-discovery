@@ -1,0 +1,191 @@
+[
+  {
+    "id": "EP-CART-UPDATEITEM",
+    "area": "cart",
+    "unit": "cart-quantity",
+    "purpose": "Sets the quantity of one cart line and returns the refreshed line HTML, totals HTML and subtotal.",
+    "method": "POST",
+    "path": "/shoppingcart/updatecartitem",
+    "query": [
+      {
+        "name": "sciItemId",
+        "example": "169024",
+        "required": true,
+        "description": "cart line id (shopping cart item id) from the data-sci-item attribute of the qty input on /cart"
+      },
+      {
+        "name": "isCartPage",
+        "example": "True",
+        "required": false,
+        "description": "as sent by the page"
+      }
+    ],
+    "contentType": "application/x-www-form-urlencoded; charset=UTF-8",
+    "bodyFields": [
+      {
+        "name": "newQuantity",
+        "example": "3",
+        "required": true,
+        "description": "integer 1..10000; 0 or negative deletes the line (and answers 500); non-numeric/empty/>2147483647 gives 502"
+      },
+      {
+        "name": "isCartPage",
+        "example": "true",
+        "required": false,
+        "description": "as sent by the page; also on query string (isCartPage=True)"
+      },
+      {
+        "name": "isWishlist",
+        "example": "false",
+        "required": false,
+        "description": "as sent by the page"
+      }
+    ],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": [
+        "SMARTSTORE.VISITOR (re-set on every response)"
+      ],
+      "bodySignal": "JSON {success:true, SubTotal:'$958.00 excl tax', message:[], cartHtml, totalsHtml, displayCheckoutButtons:true, newItemPrice:'$479.00 excl tax'}; has $type field"
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "above max (10000): HTTP 200 + success:false + message ['The maximum quantity allowed for purchase is 10000.'], quantity unchanged, SubTotal of the old cart. Unknown/foreign sciItemId: HTTP 500 JSON {error:true,controller:'shoppingcart',action:'updatecartitem',message:'Object reference not set to an instance of an object.'}. newQuantity 0 or negative: same HTTP 500 body AND the line is deleted. Non-numeric, empty, decimal, 1e2, missing newQuantity or sciItemId, >2147483647: HTTP 502 text/html Bad Gateway (line unchanged). Body-less POST: 411. GET: 404."
+    },
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-SUMMARY",
+    "area": "cart",
+    "unit": "cart-quantity",
+    "purpose": "Returns the counters for cart, wishlist and compare list (cart counter is the sum of line quantities); the page calls it after each quantity change.",
+    "method": "POST",
+    "path": "/shoppingcart/cartsummary",
+    "query": [
+      {
+        "name": "cart",
+        "example": "True",
+        "required": false,
+        "description": "include cart count"
+      },
+      {
+        "name": "wishlist",
+        "example": "True",
+        "required": false,
+        "description": "include wishlist count"
+      },
+      {
+        "name": "compare",
+        "example": "True",
+        "required": false,
+        "description": "include compare count"
+      }
+    ],
+    "contentType": "application/x-www-form-urlencoded (empty body)",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": [],
+      "bodySignal": "JSON {CartItemsCount, WishlistItemsCount, CompareItemsCount} with $type; CartItemsCount = sum of quantities (e.g. 10005 for lines 3+10000+2)"
+    },
+    "failure": {
+      "status": 411,
+      "bodySignal": "body-less POST without Content-Length"
+    },
+    "verified": true,
+    "stateChanging": false
+  },
+  {
+    "id": "EP-CART-ADDPRODUCT",
+    "area": "cart",
+    "unit": "cart-quantity",
+    "purpose": "Seed only: adds the product to the cart (same product merges into the existing line, quantity +1).",
+    "method": "POST",
+    "path": "/cart/addproduct/4/1",
+    "query": [],
+    "contentType": "application/x-www-form-urlencoded (empty body, data '')",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": [
+        "SMARTSTORE.VISITOR on first call"
+      ],
+      "bodySignal": "JSON {success:true}"
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "not explored here (owned by cart-add)"
+    },
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-ADDPRODUCTSIMPLE",
+    "area": "cart",
+    "unit": "cart-quantity",
+    "purpose": "Seed only: quick add of product {id} from a listing; gift cards answer with a redirect to the product page instead.",
+    "method": "POST",
+    "path": "/cart/addproductsimple/{productId}",
+    "query": [
+      {
+        "name": "forceredirection",
+        "example": "False",
+        "required": false,
+        "description": "as in the listing's data-href"
+      }
+    ],
+    "contentType": "application/x-www-form-urlencoded (empty body, data '')",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": [],
+      "bodySignal": "JSON {success:true, message:'The product has been added to your shopping cart'}"
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "gift card (id 20): JSON {redirect:'/10-virtual-gift-card'}, nothing added"
+    },
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-DELETEITEM",
+    "area": "cart",
+    "unit": "cart-quantity",
+    "purpose": "Cleanup only: removes one cart line (owned by cart-remove).",
+    "method": "POST",
+    "path": "/shoppingcart/deletecartitem",
+    "query": [
+      {
+        "name": "cartItemId",
+        "example": "169040",
+        "required": true,
+        "description": "cart line id"
+      }
+    ],
+    "contentType": "application/x-www-form-urlencoded (empty body, data '')",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": [],
+      "bodySignal": "JSON anonymous type with 6 fields (not inspected)"
+    },
+    "failure": {
+      "status": null,
+      "bodySignal": "not explored here"
+    },
+    "verified": true,
+    "stateChanging": true
+  }
+]

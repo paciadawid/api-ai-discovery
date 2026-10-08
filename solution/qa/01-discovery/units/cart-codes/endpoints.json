@@ -1,0 +1,71 @@
+[
+  {
+    "id": "EP-CART-APPLY-DISCOUNT",
+    "area": "cart",
+    "unit": "cart-codes",
+    "purpose": "Submit the cart form with the 'Apply coupon' button to try to apply a discount code to the session cart.",
+    "method": "POST",
+    "path": "/cart",
+    "query": [],
+    "contentType": "multipart/form-data (browser); application/x-www-form-urlencoded also accepted",
+    "bodyFields": [
+      {"name": "discountcouponcode", "example": "NOSUCHCODE", "required": true, "description": "The coupon text. Empty, whitespace-only, unknown, 300-char and HTML-special values all give the same failure."},
+      {"name": "applydiscountcouponcode", "example": "applydiscountcouponcode", "required": true, "description": "Submit-button name/value that selects the action. Without it the POST just re-renders the cart with no alert."},
+      {"name": "itemquantity{cartItemId}", "example": "1", "required": false, "description": "The browser always sends one per cart line (e.g. itemquantity169023). Not needed for the failure result."},
+      {"name": "giftcardcouponcode", "example": "", "required": false, "description": "Sent empty by the browser form; ignored when applydiscountcouponcode is the button."},
+      {"name": "CountryId", "example": "3", "required": false, "description": "Estimate-shipping field the browser sends along."},
+      {"name": "StateProvinceId", "example": "0", "required": false, "description": "Estimate-shipping field the browser sends along."},
+      {"name": "ZipPostalCode", "example": "", "required": false, "description": "Estimate-shipping field the browser sends along."}
+    ],
+    "authRequired": false,
+    "success": {"status": null, "location": null, "setCookies": "SMARTSTORE.VISITOR refreshed on every response", "bodySignal": "NOT OBSERVED: no valid discount code was found, so the applied state is unknown"},
+    "failure": {"status": 200, "bodySignal": "HTML cart page with <div class=\"alert ... alert-danger\"><span>The coupon code you entered couldn't be applied to your order</span>; totals unchanged. Same text for empty, unknown, spaces-only, long and special-character codes. With an empty cart the page shows the empty-cart warning instead and no coupon alert."},
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-APPLY-GIFTCARD",
+    "area": "cart",
+    "unit": "cart-codes",
+    "purpose": "Submit the cart form with the 'Add gift card' button to try to apply a gift card code to the session cart.",
+    "method": "POST",
+    "path": "/cart",
+    "query": [],
+    "contentType": "multipart/form-data (browser); application/x-www-form-urlencoded also accepted",
+    "bodyFields": [
+      {"name": "giftcardcouponcode", "example": "NOSUCH-GIFT-123", "required": true, "description": "The gift card code text. Empty and unknown values give the same failure."},
+      {"name": "applygiftcardcouponcode", "example": "applygiftcardcouponcode", "required": true, "description": "Submit-button name/value that selects the action."},
+      {"name": "itemquantity{cartItemId}", "example": "1", "required": false, "description": "The browser sends one per cart line; not needed for the failure result."},
+      {"name": "discountcouponcode", "example": "", "required": false, "description": "Sent empty by the browser form. Do NOT send both apply buttons in one request (HTTP 500)."},
+      {"name": "CountryId", "example": "3", "required": false, "description": "Estimate-shipping field the browser sends along."},
+      {"name": "StateProvinceId", "example": "0", "required": false, "description": "Estimate-shipping field the browser sends along."},
+      {"name": "ZipPostalCode", "example": "", "required": false, "description": "Estimate-shipping field the browser sends along."}
+    ],
+    "authRequired": false,
+    "success": {"status": null, "location": null, "setCookies": "SMARTSTORE.VISITOR refreshed on every response", "bodySignal": "NOT OBSERVED: no valid gift card code is publicly available, so the applied state is unknown"},
+    "failure": {"status": 200, "bodySignal": "HTML cart page with alert-danger span 'The coupon code you entered couldn't be applied to your order' (the SAME text as for discount codes, it says 'coupon' although a gift card was entered); totals unchanged."},
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-APPLY-BOTH-BUTTONS",
+    "area": "cart",
+    "unit": "cart-codes",
+    "purpose": "Malformed variant of the cart form post that carries both apply buttons at once.",
+    "method": "POST",
+    "path": "/cart",
+    "query": [],
+    "contentType": "multipart/form-data",
+    "bodyFields": [
+      {"name": "discountcouponcode", "example": "A", "required": true, "description": "Coupon text."},
+      {"name": "giftcardcouponcode", "example": "B", "required": true, "description": "Gift card text."},
+      {"name": "applydiscountcouponcode", "example": "applydiscountcouponcode", "required": true, "description": "Discount button."},
+      {"name": "applygiftcardcouponcode", "example": "applygiftcardcouponcode", "required": true, "description": "Gift card button."}
+    ],
+    "authRequired": false,
+    "success": {"status": null, "location": null, "setCookies": null, "bodySignal": "none"},
+    "failure": {"status": 500, "bodySignal": "Default ASP.NET/IIS 'Runtime Error' HTML page (no JSON, no stack trace shown)"},
+    "verified": true,
+    "stateChanging": false
+  }
+]

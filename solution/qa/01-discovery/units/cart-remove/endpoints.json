@@ -1,0 +1,131 @@
+[
+  {
+    "id": "EP-CART-REMOVE",
+    "area": "cart",
+    "unit": "cart-remove",
+    "purpose": "Remove one line from the visitor's shopping cart (the \"x\" link on /cart) and get back the re-rendered cart rows and totals as JSON.",
+    "method": "POST",
+    "path": "/shoppingcart/deletecartitem",
+    "query": [
+      {
+        "name": "cartItemId",
+        "example": "169021",
+        "required": true,
+        "description": "Cart line id (the sci id from data-href of the remove link on /cart, NOT the product id). Integer. May also be sent as a form body field cartItemId (verified: model-bound from either place). Lines are scoped to the caller's own cart: an id of another visitor's cart answers success:false and leaves that cart untouched. Missing, empty, non-numeric or > int32 value gives 502 Bad Gateway."
+      }
+    ],
+    "contentType": "none (empty body; body-less POST needs data '' / Content-Length: 0, otherwise 411). Optional application/x-www-form-urlencoded with cartItemId=<id>",
+    "bodyFields": [
+      {
+        "name": "cartItemId",
+        "example": "169021",
+        "required": false,
+        "description": "Alternative to the query parameter; verified to remove the line when sent as form body with no query string."
+      }
+    ],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["SMARTSTORE.VISITOR (re-issued on every response)"],
+      "bodySignal": "JSON {success:true, message:\"The product has been removed.\", cartItemCount:<number of LINES left, not the quantity sum>, cartHtml:<HTML of remaining cart rows, \"\\n\\n\\n\" when empty>, totalsHtml:<HTML of the Subtotal/Shipping/Tax/Total table; Subtotal cell is empty when the cart is empty>, displayCheckoutButtons:true}. $type is AnonymousType32."
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "Business failure (already-removed id, unknown id, 0, -1, id of another visitor's cart): HTTP 200 JSON {success:false, message:\"An error occurred during the removal of the product.\", displayCheckoutButtons:true} (AnonymousType30, no cartItemCount/cartHtml/totalsHtml). Technical failure (cartItemId missing, empty, 'abc', 99999999999): HTTP 502 text/html Bad Gateway. GET: 404 HTML 'The resource cannot be found.'. POST without any body/Content-Length: 411 Length Required."
+    },
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-REMOVE-SUMMARY",
+    "area": "cart",
+    "unit": "cart-remove",
+    "purpose": "Return the header counters (cart lines/quantity, wishlist, compare); the cart page calls it after every removal to refresh the badges.",
+    "method": "POST",
+    "path": "/shoppingcart/cartsummary",
+    "query": [
+      {
+        "name": "cart",
+        "example": "True",
+        "required": false,
+        "description": "True to include CartItemsCount; when omitted/False CartItemsCount comes back 0 (the UI sends cart=True and wishlist=True in two separate calls after a remove)."
+      },
+      {
+        "name": "wishlist",
+        "example": "True",
+        "required": false,
+        "description": "True to include WishlistItemsCount."
+      },
+      {
+        "name": "compare",
+        "example": "True",
+        "required": false,
+        "description": "True to include CompareItemsCount (sent only by the page-load variant)."
+      }
+    ],
+    "contentType": "none (empty body, data '')",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["SMARTSTORE.VISITOR (re-issued)"],
+      "bodySignal": "JSON {CartItemsCount, WishlistItemsCount, CompareItemsCount} ($type AnonymousType37). CartItemsCount is the SUM OF QUANTITIES (lines Certina x3 + Tissot x1 = 4), unlike cartItemCount in the delete response which counts lines. Empty cart: 0."
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "No failure observed; flags not set return 0 for that counter. The query flags (wishlist=True without cart=True returns CartItemsCount 0) were observed from the browser, only the full cart=True&wishlist=True&compare=True and cart=True variants were replayed with curl."
+    },
+    "verified": true,
+    "stateChanging": false
+  },
+  {
+    "id": "EP-CART-REMOVE-VIEW",
+    "area": "cart",
+    "unit": "cart-remove",
+    "purpose": "Read the cart page HTML; each line carries its remove link (data-href with the cartItemId) and, when empty, the text 'Your Shopping Cart is empty!'.",
+    "method": "GET",
+    "path": "/cart",
+    "query": [],
+    "contentType": "none",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["ASP.NET_SessionId and SMARTSTORE.VISITOR on the first cookieless request"],
+      "bodySignal": "HTML. Line ids: data-href='/shoppingcart/deletecartitem?cartItemId=<id>' (data-action=\"remove\") with data-name=<product name>. Empty cart: 'Your Shopping Cart is empty!' and no Checkout button, no totals table."
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "No failure; an empty cart renders the empty-state text."
+    },
+    "verified": true,
+    "stateChanging": false
+  },
+  {
+    "id": "EP-CART-REMOVE-OFFCANVAS",
+    "area": "cart",
+    "unit": "cart-remove",
+    "purpose": "Return the mini-cart HTML fragment; after the last line is removed it shows the empty state.",
+    "method": "POST",
+    "path": "/shoppingcart/offcanvasshoppingcart",
+    "query": [],
+    "contentType": "none (empty body, data '')",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["SMARTSTORE.VISITOR (re-issued)"],
+      "bodySignal": "HTML fragment. Empty cart: 'Shopping cart empty' / 'You have not added any product to your cart yet.' (class no-items)."
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "None observed."
+    },
+    "verified": true,
+    "stateChanging": false
+  }
+]

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scout: discovery plan: QA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="vis-stage" content="scout">
+<meta name="vis-title" content="Scout: discovery plan">
+<meta name="vis-generated" content="2026-10-08 09:26 UTC">
+<meta name="vis-headline" content="5 areas, 5 units (1 x S, 4 x M), 5 excluded, 5 chosen at the scope gate">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2330;--muted:#5d6879;--line:#dde2ea;--given:#5b6472;--when:#2563eb;--then:#15803d;--bug:#92400e;--bugbg:#fff4e0;--ok:#166534;--okbg:#e6f6ec;--bad:#991b1b;--badbg:#fdeaea;--warn:#92400e;--warnbg:#fff4e0;--info:#1e40af;--infobg:#e8effd;
+--get:#0e7490;--post:#7c3aed;--put:#b45309;--delete:#b91c1c;--patch:#4d7c0f}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header.top{padding:24px 32px 8px;max-width:1100px;margin:0 auto}
+header.top h1{margin:0 0 4px;font-size:26px}
+header.top .meta{color:var(--muted);font-size:13px;margin:2px 0}
+header.top .meta code{background:#eef1f6;padding:1px 5px;border-radius:4px}
+header.top a{color:var(--info)}
+main{max-width:1100px;margin:0 auto;padding:8px 32px 48px}
+h2{margin:30px 0 12px;font-size:18px}h3{font-size:15px;margin:16px 0 6px}h4,h5,h6{font-size:14px;margin:12px 0 4px}
+code,.ep{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+p{margin:6px 0}pre{background:#eef1f6;padding:10px 12px;border-radius:8px;overflow:auto;font-size:12.5px;max-height:480px}
+blockquote{margin:8px 0;padding:4px 12px;border-left:3px solid var(--line);color:var(--muted)}
+.overview{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.tile b{display:block;font-size:22px}.tile span{color:var(--muted);font-size:13px}
+.tile.bad{border-color:#e7a3a3;background:var(--badbg)}.tile.ok{border-color:#9fd3b0}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:14px}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#eef1f6;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+tr:last-child td{border-bottom:0}.scroll{overflow-x:auto}
+.m{display:inline-block;min-width:46px;text-align:center;padding:1px 6px;border-radius:4px;color:#fff;font-size:11px;font-weight:700}
+.m.GET{background:var(--get)}.m.POST{background:var(--post)}.m.PUT{background:var(--put)}.m.DELETE{background:var(--delete)}.m.PATCH{background:var(--patch)}
+.chip{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:99px;border:1px solid var(--line);background:#eef1f6;color:var(--ink);white-space:nowrap;margin:1px 2px 1px 0}
+.chip.ok{background:var(--okbg);color:var(--ok);border-color:#9fd3b0}.chip.bad{background:var(--badbg);color:var(--bad);border-color:#e7a3a3}
+.chip.warn{background:var(--warnbg);color:var(--warn);border-color:#f0cf98}.chip.info{background:var(--infobg);color:var(--info);border-color:#b5c8f3}
+.note{background:var(--warnbg);color:var(--warn);border:1px solid #f0cf98;border-radius:8px;padding:8px 12px;margin:10px 0}
+.note b{display:inline-block;width:18px;height:18px;line-height:18px;text-align:center;border-radius:50%;background:var(--warn);color:#fff;margin-right:6px;font-size:12px}
+details.card,details.test{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:10px 0;overflow:hidden}
+details.card>summary,details.test>summary{cursor:pointer;padding:12px 16px;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details.card>summary::before,details.test>summary::before{content:"\25B8";color:var(--muted)}
+details[open].card>summary::before,details[open].test>summary::before{content:"\25BE"}
+details .body{padding:4px 16px 16px;border-top:1px solid var(--line)}
+details.raw{margin:8px 0;color:var(--muted);font-size:13px}details.raw summary{cursor:pointer}
+.uc{font-weight:700;white-space:nowrap}.title{flex:1;min-width:200px}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:14px 0 6px}
+.step{border-radius:8px;padding:5px 10px;color:#fff;font-size:12.5px;max-width:330px}
+.step small{display:block;opacity:.92;font-family:ui-monospace,Menlo,monospace;font-size:11px}
+.step.given{background:var(--given)}.step.when{background:var(--when)}.step.then{background:var(--then)}
+.step b{font-size:10.5px;letter-spacing:.05em;margin-right:4px;opacity:.95}
+.arrow{color:var(--muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:8px 0}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+ul.checks{margin:8px 0 0;padding:0;list-style:none}ul.checks li{padding:4px 0 4px 26px;position:relative}
+ul.checks li::before{content:"\2713";position:absolute;left:4px;color:var(--then);font-weight:700}
+.sub{margin:14px 0 4px;font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.matrix td,.matrix th{text-align:center;padding:6px 8px}.matrix td:first-child,.matrix th:first-child{text-align:left}
+.dot{font-size:15px;line-height:1}.dot.setup{color:var(--given)}.dot.main{color:var(--when)}
+.barwrap{display:flex;align-items:center;gap:8px}.bar{display:inline-block;flex:1;min-width:80px;height:12px;background:#e3e7ee;border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--when)}.bar i.ok{background:#2e9d5b}.bar i.bad{background:#d14343}.bar i.sel{background:var(--when)}.bar i.def{background:#8a94a6}
+.barlabel{font-size:12.5px;white-space:nowrap;min-width:64px}
+.rank{display:grid;grid-template-columns:34px 112px minmax(160px,1.2fr) minmax(140px,2fr) 112px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.rank .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cut{border-top:2px dashed var(--muted);margin:4px 0;color:var(--muted);font-size:12px;padding-top:2px}
+.banner{border-radius:12px;padding:16px 20px;margin:16px 0;border:1px solid var(--line);background:var(--card)}
+.banner.ok{background:var(--okbg);border-color:#9fd3b0}.banner.bad{background:var(--badbg);border-color:#e7a3a3}.banner.warn{background:var(--warnbg);border-color:#f0cf98}
+.banner .lead{font-size:17px;font-weight:700;margin-bottom:4px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px}
+.cardbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.cardbox h3{margin-top:0}.cardbox .item{border-top:1px solid var(--line);padding:8px 0}.cardbox .item:first-of-type{border-top:0}
+.metric .row{font-size:13.5px;color:var(--muted)}.metric .row b{color:var(--ink)}.metric .delta{font-weight:700;margin-top:4px}
+.heat th{text-transform:none;letter-spacing:0;font-size:11px}.heat td,.heat th{padding:6px;font-size:11.5px;vertical-align:top;text-align:left;min-width:78px}
+.heat td.hit{background:var(--okbg)}.heat td.miss{background:var(--badbg)}.heat td.empty{background:#f3f4f7;color:#9aa3b2;text-align:center}
+.heat .chip{display:block;white-space:normal;margin:2px 0;font-size:11px}
+.stages{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+a.stagecard{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+a.stagecard:hover{border-color:var(--when)}.stagecard.missing{opacity:.75;border-style:dashed}
+.stagecard h3{margin:0 0 4px}.stagecard .gen{color:var(--muted);font-size:12.5px}
+.muted{color:var(--muted)}.small{font-size:12.5px}.sr{position:absolute;left:-9999px}
+footer{color:var(--muted);font-size:13px;margin:32px auto;max-width:1100px;padding:0 32px}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Scout: discovery plan: QA</h1>
+  <p class="meta">Feature <b>QA</b> &middot; generated 2026-10-08 09:26 UTC &middot; <a href="index.html">all stages (index.html)</a></p>
+  <p class="meta">Sources: <code>qa/01-discovery/areas.md</code></p>
+</header>
+<main>
+<div class="overview"><div class="tile "><b>5</b><span>areas</span></div><div class="tile "><b>5</b><span>units</span></div><div class="tile "><b>5 of 5</b><span>units chosen at the scope gate</span></div><div class="tile "><b>1 / 4 / 0</b><span>effort S / M / L units</span></div><div class="tile "><b>5 of 5</b><span>units that need no login</span></div><div class="tile "><b>5</b><span>excluded from scope</span></div></div>
+<section><h2>Scope decision</h2><ul><li>Asked: All units</li><li>Explored units: cart-add, cart-quantity, cart-remove, cart-codes, cart-totals-shipping</li><li>Not explored (user&#39;s choice): none</li><li>Refinements: 0</li></ul></section>
+<section><h2>Units</h2><table><thead><tr><th>Unit</th><th>Area</th><th>Entry</th><th>Needs login</th><th>Owns state</th><th>Effort</th><th>Scope gate</th></tr></thead><tbody><tr><td><b>cart-add</b></td><td>cart</td><td>/watches, /certina-ds-podium-big-size (regular product), /25-virtual-gift-card (gift card with recipient fields), /cart</td><td><span class="chip ok">no login</span></td><td>cart lines created by add (own session cart)</td><td><span class="chip warn">M (medium)</span></td><td><span class="chip ok">EXPLORED</span></td></tr><tr><td><b>cart-quantity</b></td><td>cart-quantity</td><td>/cart (qty +/- buttons and qty textbox per line)</td><td><span class="chip ok">no login</span></td><td>quantity of lines in its own session cart (seeded by adding 1-2 products)</td><td><span class="chip warn">M (medium)</span></td><td><span class="chip ok">EXPLORED</span></td></tr><tr><td><b>cart-remove</b></td><td>cart-remove</td><td>/cart (the &quot;x&quot; remove link per line)</td><td><span class="chip ok">no login</span></td><td>removal of lines in its own session cart (seeded by adding products)</td><td><span class="chip ok">S (small)</span></td><td><span class="chip ok">EXPLORED</span></td></tr><tr><td><b>cart-codes</b></td><td>cart-codes</td><td>/cart (panels &quot;I have a discount code&quot; and &quot;I have a gift card&quot;)</td><td><span class="chip ok">no login</span></td><td>applied discount/gift-card code on its own session cart</td><td><span class="chip warn">M (medium)</span></td><td><span class="chip ok">EXPLORED</span></td></tr><tr><td><b>cart-totals-shipping</b></td><td>cart-totals-shipping</td><td>/cart (totals table: Subtotal, Shipping, Tax, Total; &quot;Estimate shipping&quot; panel)</td><td><span class="chip ok">no login</span></td><td>estimated shipping selection / country-zip in its own session cart</td><td><span class="chip warn">M (medium)</span></td><td><span class="chip ok">EXPLORED</span></td></tr></tbody></table><details class="card"><summary>What each unit has to find out</summary><div class="body"><ul><li><b>cart-add</b>: How &quot;Add to cart&quot; works from a product page (and category quick add if present): request, quantity at add, adding the same product twice (merge vs new line), gift card form fields and their validation, failure messages (HTTP 200 + success:false), cart counter/mini-cart after add</li><li><b>cart-quantity</b>: How a quantity change is sent and answered: +/-, typed value, 0, negative, non-numeric, very large, stock/max-per-order limits; line total and subtotal refresh; messages</li><li><b>cart-remove</b>: How a line is removed: request/response, removing one of several lines, removing the last line (empty-cart state), removing an already-removed or unknown line id, effect on counters</li><li><b>cart-codes</b>: How a discount code and a gift card code are applied and removed: request shape, messages for empty/invalid/unknown codes, whether valid codes exist publicly (do not guess at scale), effect on totals</li><li><b>cart-totals-shipping</b>: How totals are computed after add/qty changes (subtotal x qty, shipping, tax, total, rounding, currency switch USD), how &quot;Estimate shipping&quot; is requested and answered, free-shipping behaviour (e.g. gift cards), the Checkout button gate (observe only)</li></ul></div></details></section>
+<section><h2>Areas</h2><ul><li><b>cart</b> - Everything a visitor can do on the shopping basket: add products, change quantities, remove lines, apply discount / gift-card codes, and check totals and shipping estimates. Units: <code>cart-add</code>, <code>cart-quantity</code>, <code>cart-remove</code>, <code>cart-codes</code>, <code>cart-totals-shipping</code>. Total effort: L.</li></ul></section>
+<section><h2>Excluded (outside scope)</h2><ul><li>wishlist (/wishlist, &quot;Add to List&quot;): keeps its own state (per visitor/user list); not browsed.</li><li>compare (/compareproducts, &quot;Compare&quot;): keeps its own state; not browsed.</li><li>checkout (Checkout button, steps Address, Shipping, Payment, Confirm, Complete): would place real orders and requires address/payment data; destructive on a shared public host.</li><li>auth (/login, registration): no new accounts on the shared host; the cart is fully usable anonymously, so no login is needed for the cart scope.</li><li>catalog browse/search, product reviews, contact, newsletter, content pages (/aboutus, /blog, /shippinginfo, ...): other areas, not part of the cart scope.</li></ul></section>
+<section><h2>Browser evidence</h2><p><span class="chip ok">headed browser: yes</span> session: <code>qa-scout</code></p><details class="card"><summary>Evidence as written</summary><div class="body"><p>Command: <code>./node_modules/.bin/playwright-cli list</code> (right after <code>open https://bearstore-testsite.smartbear.com/ --headed</code>):</p>
+<pre><code>### Browsers
+- qa-scout:
+  - status: open
+  - browser-type: chrome
+  - user-data-dir: &lt;in-memory&gt;
+  - headed: true</code></pre></div></details></section>
+<details class="card"><summary>Shared rules</summary><div class="body"><ul><li>No credentials are needed for this scope. If ever needed, only via env var names <code>BEARSTORE_EMAIL</code> / <code>BEARSTORE_PASSWORD</code>; never read or print <code>.env</code>.</li><li>Every unit runs in its OWN headed browser session (<code>-s=qa-&lt;unit-key&gt;</code>, <code>open ... --headed</code>); each session is its own anonymous cart (the host keys a guest cart by IP + User-Agent, so replays with curl must use a unique User-Agent and their own cookie jar).</li><li>No destructive actions: do not click Checkout past the cart, place no orders, create no accounts, do not subscribe to the newsletter.</li><li>Clean up what you create: remove cart lines and applied codes before closing the session.</li><li>Modest volume on a shared public host; business failures arrive as HTTP 200 + <code>success:false</code>; body-less POST needs <code>data: &#39;&#39;</code>; send <code>X-Requested-With: XMLHttpRequest</code>.</li></ul></div></details>
+<details class="card"><summary>What the scout saw</summary><div class="body"><p>Base URL: https://bearstore-testsite.smartbear.com/ (SmartStore). Scope: <code>cart</code> only. One area, 5 units.</p></div></details>
+</main>
+<footer>Generated by <code>scripts/visualize.mjs</code> from the files listed above. No network, no AI.</footer>
+</body>
+</html>

@@ -1,97 +1,73 @@
-import { expect as base } from '@playwright/test';
+import { expect as base, type ExpectMatcherState } from '@playwright/test';
 import type { Reply } from '@/api/http-client';
-import type { LoginResult } from '@/domain/forms';
-import type { Page } from '@/domain/page';
-import { serverMessages } from '@/domain/server-messages';
-import type { CartActionBody } from '@/api/types';
-import { LineItems } from '@/domain/line-items';
+import type { DeleteItemBody, UpdateItemBody } from '@/api/types';
+import type { CartPage } from '@/domain/cart-page';
+import { formatMoney, lineTotalCents, parseMoney } from '@/domain/pricing';
+import { REMOVED_MESSAGE } from '@/domain/messages';
 import type { Product } from '@/domain/products';
 
-interface LineExpectation {
-  quantity?: number;
-  unitPrice?: string;
-  lineTotal?: string;
-}
+export type ExpectedLine = { id?: number; product: Product; quantity: number };
 
-interface ServerErrorExpectation {
-  message?: string;
-  controller?: string;
-  action?: string;
-}
+// Failure messages print the reply or the cart, long HTML fields shortened, so nobody opens the raw response.
+const show = (value: unknown): string =>
+  JSON.stringify(value, (_k, v) => (typeof v === 'string' && v.length > 80 ? `${v.slice(0, 60)}...(${v.length} chars)` : v));
 
-const result = (pass: boolean, message: string) => ({ pass, message: () => message });
-const show = (reply: Reply<CartActionBody>) => `HTTP ${reply.status} ${JSON.stringify(reply.body).slice(0, 200)}`;
+const describeLines = (cart: CartPage): string =>
+  cart.lines.map((l) => `#${l.id} ${l.name} x${l.quantity} (unit ${formatMoney(l.unitPriceCents)}, total ${formatMoney(l.lineTotalCents)})`).join('; ') || '(no lines)';
 
-/**
- * Domain assertions. Failures print the actual lines or reply, so nobody has to open the HTML to see what was there.
- * The store reports business failures as HTTP 200 + success:false, so "accepted"/"refused" look at both status and body.
- */
 export const expect = base.extend({
-  toHaveNoLines(received: LineItems) {
-    return result(received.isEmpty, `expected no lines, got: ${received.describe()}`);
+  /** Business success: HTTP 200 and success:true (a 200 alone proves nothing on this host). */
+  toBeAccepted(this: ExpectMatcherState, reply: Reply<{ success: boolean }>) {
+    const pass = reply.status === 200 && reply.body.success === true;
+    return { pass, message: () => `${this.isNot ? 'did not expect' : 'expected'} the call to succeed (HTTP 200 + success:true)\n  actual: HTTP ${reply.status} ${show(reply.body)}` };
   },
 
-  toHaveLineCount(received: LineItems, count: number) {
-    return result(received.items.length === count, `expected ${count} line(s), got ${received.items.length}: ${received.describe()}`);
+  /** Business refusal: HTTP 200, success:false and this exact message. */
+  toBeRefusedWith(this: ExpectMatcherState, reply: Reply<{ success: boolean; message?: unknown }>, message: string) {
+    const pass = reply.status === 200 && reply.body.success === false && reply.body.message === message;
+    return { pass, message: () => `${this.isNot ? 'did not expect' : 'expected'} a refusal (HTTP 200, success:false, message "${message}")\n  actual: HTTP ${reply.status} ${show(reply.body)}` };
   },
 
-  toContainLine(received: LineItems, product: Product, expected: LineExpectation = {}) {
-    const line = received.lineFor(product);
-    if (!line) return result(false, `expected a line for ${product.name}, got: ${received.describe()}`);
-    const mismatches = (Object.keys(expected) as (keyof LineExpectation)[])
-      .filter((key) => line[key] !== expected[key])
-      .map((key) => `${key}: expected ${expected[key]}, got ${line[key]}`);
-    return result(mismatches.length === 0, `${product.name} line differs: ${mismatches.join('; ')}`);
+  /** A removal: success, the exact message, and cartItemCount = number of LINES left (not units). */
+  toConfirmRemoval(this: ExpectMatcherState, reply: Reply<DeleteItemBody>, linesLeft: number) {
+    const pass = reply.status === 200 && reply.body.success === true && reply.body.message === REMOVED_MESSAGE && reply.body.cartItemCount === linesLeft;
+    return { pass, message: () => `${this.isNot ? 'did not expect' : 'expected'} a removal confirmation with ${linesLeft} line(s) left, message "${REMOVED_MESSAGE}"\n  actual: HTTP ${reply.status} ${show(reply.body)}` };
   },
 
-  toBeAccepted(received: Reply<CartActionBody>) {
-    return result(received.status === 200 && received.body.success === true, `expected the store to accept the request, got ${show(received)}`);
+  /** Update reply: the whole-cart SubTotal field only. */
+  toReportSubtotal(reply: Reply<UpdateItemBody>, cents: number) {
+    const actual = reply.body.SubTotal === undefined ? undefined : parseMoney(reply.body.SubTotal);
+    return { pass: actual === cents, message: () => `update reply SubTotal\n  expected: ${formatMoney(cents)}\n  actual:   ${show(reply.body.SubTotal)}` };
   },
 
-  toBeRefused(received: Reply<CartActionBody>, message?: string) {
-    const refused = received.status === 200 && received.body.success === false;
-    const sameMessage = message === undefined || received.body.message === message;
-    return result(refused && sameMessage, `expected the store to refuse the request${message ? ` with "${message}"` : ''}, got ${show(received)}`);
+  /** Update reply: the newItemPrice field only, which is the UNIT price of the line. */
+  toReportUnitPrice(reply: Reply<UpdateItemBody>, cents: number) {
+    const actual = reply.body.newItemPrice === undefined ? undefined : parseMoney(reply.body.newItemPrice);
+    return { pass: actual === cents, message: () => `update reply newItemPrice (unit price)\n  expected: ${formatMoney(cents)}\n  actual:   ${show(reply.body.newItemPrice)}` };
   },
 
-  toFailWithServerError(received: Reply<CartActionBody>, expected: ServerErrorExpectation = {}) {
-    const crashed = received.status === 500 && received.body.error === true;
-    const matches = (Object.keys(expected) as (keyof ServerErrorExpectation)[]).every((key) => received.body[key] === expected[key]);
-    return result(crashed && matches, `expected an HTTP 500 server error ${JSON.stringify(expected)}, got ${show(received)}`);
+  /** The cart page shows EXACTLY these lines (extras and missing ones fail; page order is not part of the contract).
+   *  Each line: product name, quantity, unit price = the product's, line total = unit price x quantity; id only when given. */
+  toHaveExactlyTheLines(this: ExpectMatcherState, cart: CartPage, expected: ExpectedLine[]) {
+    const wanted = expected
+      .map((e) => ({ id: e.id, name: e.product.name, quantity: e.quantity, unitPriceCents: e.product.unitPriceCents, lineTotalCents: lineTotalCents(e.product, e.quantity) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const actual = [...cart.lines].sort((a, b) => a.name.localeCompare(b.name));
+    const pass =
+      wanted.length === actual.length &&
+      wanted.every((w, i) => {
+        const a = actual[i];
+        return (w.id === undefined || w.id === a.id) && w.name === a.name && w.quantity === a.quantity && w.unitPriceCents === a.unitPriceCents && w.lineTotalCents === a.lineTotalCents;
+      });
+    const wantedText = wanted.map((w) => `${w.id === undefined ? '#?' : `#${w.id}`} ${w.name} x${w.quantity} (unit ${formatMoney(w.unitPriceCents)}, total ${formatMoney(w.lineTotalCents)})`).join('; ') || '(no lines)';
+    return { pass, message: () => `cart lines\n  ${this.isNot ? 'not expected' : 'expected'}: ${wantedText}\n  actual:   ${describeLines(cart)}` };
   },
 
-  toBeAnHtmlPage(received: Page) {
-    return result(received.status === 200 && received.isHtml, `expected an HTML page with HTTP 200, got HTTP ${received.status}${received.isHtml ? '' : ' (not HTML)'}`);
-  },
-
-  toRedirectToLoginThenBackTo(received: Page, path: string) {
-    const location = received.location ?? '';
-    const returnUrl = decodeURIComponent(location.replace(/^[^=]*=/, '')).toLowerCase();
-    const redirects = received.status === 302 && /^\/login\?returnurl=/i.test(location);
-    return result(redirects && returnUrl === path, `expected a 302 to /login?returnUrl=${path}, got HTTP ${received.status} Location: ${location || '(none)'}`);
-  },
-
-  toHaveSignedIn(received: LoginResult) {
-    const signedIn = received.page.status === 302 && received.sessionCookie !== undefined;
-    return result(
-      signedIn,
-      `login not accepted: HTTP ${received.page.status}, Location: ${received.page.location ?? '(none)'}, ` +
-        `session cookie issued: ${received.sessionCookie !== undefined}, ` +
-        `"${serverMessages.loginUnsuccessful}" shown: ${received.errors.includes(serverMessages.loginUnsuccessful)}. ` +
-        'The QA account may not exist or the credentials in .env are wrong.',
-    );
-  },
-
-  toBeRejectedLogin(received: LoginResult) {
-    const rejected =
-      received.page.status === 200 &&
-      received.sessionCookie === undefined &&
-      received.errors.includes(serverMessages.loginUnsuccessful) &&
-      received.errors.includes(serverMessages.credentialsIncorrect);
-    return result(
-      rejected,
-      `expected a refused login (HTTP 200, no session cookie, "${serverMessages.credentialsIncorrect}"), got HTTP ${received.page.status}, ` +
-        `session cookie issued: ${received.sessionCookie !== undefined}, summary: "${received.errors}"`,
-    );
+  /** The Subtotal row of the cart page. */
+  toHaveSubtotal(cart: CartPage, cents: number) {
+    return {
+      pass: cart.subtotalCents === cents,
+      message: () => `cart page Subtotal\n  expected: ${formatMoney(cents)}\n  actual:   ${cart.subtotalCents === null ? '(no totals table)' : formatMoney(cart.subtotalCents)}\n  lines:    ${describeLines(cart)}`,
+    };
   },
 });

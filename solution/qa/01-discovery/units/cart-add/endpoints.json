@@ -1,0 +1,192 @@
+[
+  {
+    "id": "EP-CART-ADD-QUICK",
+    "area": "cart",
+    "unit": "cart-add",
+    "purpose": "Add one unit of a simple product to the guest cart from a category listing (quick add button, hover on a product card).",
+    "method": "POST",
+    "path": "/cart/addproductsimple/{productId}",
+    "query": [
+      { "name": "forceredirection", "example": "False", "required": false, "description": "UI sends False. With True a successful add answers {redirect:\"/cart\"} instead of {success,message}; the product is still added." }
+    ],
+    "contentType": "none (body-less POST; needs an empty body, otherwise HTTP 411; header X-Requested-With: XMLHttpRequest sent by UI)",
+    "bodyFields": [
+      { "name": "(none)", "example": "", "required": false, "description": "Quantity is always 1. A quantity parameter in the query or in the body is ignored (verified, count rose by 1 each time)." }
+    ],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["SMARTSTORE.VISITOR (re-issued, 1 year, HttpOnly, Secure, SameSite=Lax)"],
+      "bodySignal": "JSON {success:true, message:\"The product has been added to your shopping cart\"}; with forceredirection=True: JSON {redirect:\"/cart\"}"
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "Unknown id: {success:false, message:{TextHint:\"Products.NotFound\", Args:[id], Text:\"The product with ID <id> was not found\"}} (message is an object, not a string). Gift card or product with required attributes (e.g. id 63 Ball Chair): {redirect:\"/<product-slug>\"} and nothing is added. GET: HTTP 404."
+    },
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-ADD-PRODUCT",
+    "area": "cart",
+    "unit": "cart-add",
+    "purpose": "Add a simple product with a chosen quantity to the guest cart from its product page (Add to cart button); cart type 1 is the cart, 2 is the wishlist.",
+    "method": "POST",
+    "path": "/cart/addproduct/{productId}/{cartTypeId}",
+    "query": [],
+    "contentType": "application/x-www-form-urlencoded; charset=UTF-8 (X-Requested-With: XMLHttpRequest sent by UI; an empty body '' also works)",
+    "bodyFields": [
+      { "name": "addtocart_{productId}.EnteredQuantity", "example": "3", "required": false, "description": "Quantity, integer 1..10000. UI sends this name on the add request. The name addtocart_{productId}.AddToCart.EnteredQuantity (form input name, used by updateproductdetails and by the gift card add) is also accepted. Absent field defaults to 1; empty, 0, negative, decimal, non-numeric or a value above int range fail." }
+    ],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["SMARTSTORE.VISITOR (re-issued)"],
+      "bodySignal": "JSON {success:true} (no message). Adding the same product again MERGES into the existing line (quantity summed, same cart item id); CartItemsCount counts units, not lines."
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "success:false with message array: [\"Quantity should be positive\"] for 0, -1, abc, 1.5, empty, 99999999999; [\"The maximum quantity allowed for purchase is 10000.\"] for 10001 and also when line quantity plus added quantity exceeds 10000; [\"Please select 'Material'.\", ...] for a product with required attributes (id 63). Unknown product id 99999999: {redirect:\"/\"}. Non-numeric or 0 product id: HTTP 404 HTML. GET: HTTP 404. POST without any body: HTTP 411."
+    },
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-ADD-GIFTCARD",
+    "area": "cart",
+    "unit": "cart-add",
+    "purpose": "Add a virtual gift card to the cart with recipient and sender details (same URL as the product add, different body).",
+    "method": "POST",
+    "path": "/cart/addproduct/{productId}/{cartTypeId}",
+    "query": [],
+    "contentType": "application/x-www-form-urlencoded; charset=UTF-8",
+    "bodyFields": [
+      { "name": "giftcard{productId}-0-.RecipientName", "example": "Rec Ipient", "required": true, "description": "Failure message: Enter valid recipient name. Blank/whitespace rejected; 500 chars accepted." },
+      { "name": "giftcard{productId}-0-.RecipientEmail", "example": "rec@example.com", "required": true, "description": "Failure message: Enter valid recipient email. Rejected: empty, notanemail, a@b, address with a space." },
+      { "name": "giftcard{productId}-0-.SenderName", "example": "Send Er", "required": true, "description": "Failure message: Enter valid sender name." },
+      { "name": "giftcard{productId}-0-.SenderEmail", "example": "send@example.com", "required": true, "description": "Failure message: Enter valid sender email." },
+      { "name": "giftcard{productId}-0-.Message", "example": "Happy bear day", "required": false, "description": "Optional; empty ok, 5000 chars accepted (no length limit seen)." },
+      { "name": "addtocart_{productId}.AddToCart.EnteredQuantity", "example": "1", "required": false, "description": "Quantity 1..10000, same rules as the regular product add." }
+    ],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": ["SMARTSTORE.VISITOR (re-issued)"],
+      "bodySignal": "JSON {success:true}. Identical recipient/sender/message details merge into the existing line (qty 2, $50.00 for two $25 cards); any difference in the details creates a NEW line (own cart item id)."
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "JSON {success:false, message:[...]}: all invalid fields are listed at once, e.g. [\"Enter valid recipient name\",\"Enter valid recipient email\",\"Enter valid sender name\",\"Enter valid sender email\"] for an empty form or a body-less POST; quantity errors as in EP-CART-ADD-PRODUCT. Nothing is added."
+    },
+    "verified": true,
+    "stateChanging": true
+  },
+  {
+    "id": "EP-CART-ADD-COUNTERS",
+    "area": "cart",
+    "unit": "cart-add",
+    "purpose": "Return the header counters (cart units, wishlist items, compare items) that the UI refreshes after every add.",
+    "method": "POST",
+    "path": "/shoppingcart/cartsummary",
+    "query": [
+      { "name": "cart", "example": "True", "required": false, "description": "Without cart=True CartItemsCount is returned as 0." },
+      { "name": "wishlist", "example": "True", "required": false, "description": "Include wishlist count." },
+      { "name": "compare", "example": "True", "required": false, "description": "Include compare count." }
+    ],
+    "contentType": "none (body-less POST; empty body needed, X-Requested-With: XMLHttpRequest)",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": [],
+      "bodySignal": "JSON {$type, CartItemsCount:int, WishlistItemsCount:int, CompareItemsCount:int}. CartItemsCount is the sum of quantities over all lines."
+    },
+    "failure": {
+      "status": 404,
+      "bodySignal": "GET is HTTP 404 (POST only)."
+    },
+    "verified": true,
+    "stateChanging": false
+  },
+  {
+    "id": "EP-CART-ADD-MINICART",
+    "area": "cart",
+    "unit": "cart-add",
+    "purpose": "Return the off-canvas mini-cart HTML that the UI shows after an add (success alert with product name, line items, qty input, remove link).",
+    "method": "POST",
+    "path": "/shoppingcart/offcanvasshoppingcart",
+    "query": [],
+    "contentType": "none (body-less POST; empty body, X-Requested-With: XMLHttpRequest)",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": [],
+      "bodySignal": "text/html fragment with div.offcanvas-cart-item per line; right after a UI add it starts with an alert 'The product <b>name</b> has been successfully added to your cart' (the alert was not reproduced by a bare curl call, only items listed). Line input data-sci-id is the cart item id."
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "No failure seen; GET also answers 200."
+    },
+    "verified": true,
+    "stateChanging": false
+  },
+  {
+    "id": "EP-CART-ADD-UPDATEDETAILS",
+    "area": "cart",
+    "unit": "cart-add",
+    "purpose": "Product page helper: recompute price/stock/variant partials when the quantity or gift card fields change (the UI fires it on each field blur before Add to cart).",
+    "method": "POST",
+    "path": "/product/updateproductdetails",
+    "query": [
+      { "name": "productId", "example": "4", "required": true, "description": "Product id." },
+      { "name": "bundleItemId", "example": "0", "required": true, "description": "0 for a normal product." }
+    ],
+    "contentType": "application/x-www-form-urlencoded; charset=UTF-8",
+    "bodyFields": [
+      { "name": "addtocart_{productId}.AddToCart.EnteredQuantity", "example": "3", "required": false, "description": "Current quantity; the gift card form also sends its giftcard{id}-0-.* fields here." }
+    ],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": [],
+      "bodySignal": "JSON with Partials{Attrs,Price,...}, Stock, TierPrices, Variants, GalleryHtml. Does not change the cart (count stays the same)."
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "Not explored."
+    },
+    "verified": true,
+    "stateChanging": false
+  },
+  {
+    "id": "EP-CART-ADD-VIEW",
+    "area": "cart",
+    "unit": "cart-add",
+    "purpose": "Cart page HTML used to verify the result of an add (lines, quantity input, line total, subtotal, remove link with cart item id).",
+    "method": "GET",
+    "path": "/cart",
+    "query": [],
+    "contentType": "none",
+    "bodyFields": [],
+    "authRequired": false,
+    "success": {
+      "status": 200,
+      "location": null,
+      "setCookies": [],
+      "bodySignal": "HTML: per line input[name=itemquantity<id>] with data-sci-item=<cart item id>, span.price line total, td.cart-summary-value subtotal, data-href=/shoppingcart/deletecartitem?cartItemId=<id>; empty cart shows 'Your Shopping Cart is empty!'."
+    },
+    "failure": {
+      "status": 200,
+      "bodySignal": "No failure; owned for details by other cart units."
+    },
+    "verified": true,
+    "stateChanging": false
+  }
+]
