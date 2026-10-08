@@ -14,6 +14,7 @@ Requirements: Node 20.12 or newer. Claude Code **or** any AI chat you already us
 npm install                    # once: a fresh hand-out has no node_modules
 bash scripts/preflight.sh      # expect PASS lines and "Pre-flight OK"
 npm run verify                 # typecheck + framework lint: green on the empty kit
+# later, after a test run:  npm run report   (opens the Playwright HTML report from playwright-report/)
 npx playwright install chromium   # Claude Code path only: its agents open a headed browser
 ```
 

@@ -8,10 +8,9 @@ An AI test crew that explores an undocumented API, writes and debugs tests, and 
 |---|---|
 | `track-a-from-scratch/` | participants arrive with **nothing**; you build the project and the agents live (`starter/` is the safety net) |
 | `track-b-with-kit/` | participants already have the **kit** (`participant-kit/`) and drive in pairs, one laptop per pair: Claude Code runs `/qa-cycle <url> <slice> limits: workshop`, any other AI follows `stage-cards.md` (open registration, laptops optional) |
-| `_archive/` | the old combined slides and run sheet; safe to delete |
 | `../solution/` | the finished **demo project**: layered framework, the cart slice (5 live tests), QA artifacts and visual pages, Postman and Swagger exporters; show it, do not hand it out |
 
-Each track is a self-contained subproject: `conspect.md` (facilitator script), `slides.md` (Marp, short slides with speaker notes), `slides.html` (rendered, self-contained), `README.md`, reference suite, finished artifacts, scripts. Assets are duplicated on purpose.
+Each track is a self-contained subproject: `slides.html` (rendered deck, self-contained), `README.md`, reference suite, finished artifacts, scripts. The facilitator script `conspect.md` and the Marp source `slides.md` (speaker notes as HTML comments) are gitignored and live only on the facilitator's machine. Assets are duplicated between tracks on purpose.
 
 ## Shared agenda
 
@@ -51,4 +50,4 @@ Same nine assertion rules, cut order and fallback ladder in both tracks. Only se
 - One full rehearsal per track, end to end, on a participant-like laptop.
 - Morning of: the reference suite, the sabotage script and the Map it check of the track you teach (in its conspect, section 1).
 - Render slides: `npx @marp-team/marp-cli <track>/slides.md --html`. Images in the slides are embedded as base64, so there is no image folder.
-- The repo is public: https://github.com/paciadawid/api-ai-discovery. Facilitator conspects, `slides.md` and `_archive/` are gitignored and stay local; the rendered `slides.html` is committed and contains the speaker notes (press P for the presenter view).
+- The repo is public: https://github.com/paciadawid/api-ai-discovery. Facilitator conspects and `slides.md` are gitignored and stay local; the rendered `slides.html` is committed and contains the speaker notes (press P for the presenter view).

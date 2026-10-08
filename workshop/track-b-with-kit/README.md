@@ -4,8 +4,9 @@ Each pair has `participant-kit/` (eight agents, two commands, three skills, four
 
 | File / folder | What it is |
 |---|---|
-| `conspect.md` | facilitator script: prep, kit tour, run sheet, what to say per block, the Gate 2 hold, fallback ladder, facts |
-| `slides.md` | Marp deck (short slides, speaker notes as HTML comments); `slides.html` is the rendered, self-contained copy |
+| `conspect.md` | (local, gitignored) facilitator script: prep, kit tour, run sheet, what to say per block, the Gate 2 hold, fallback ladder, facts |
+| `slides.html` | the rendered deck, self-contained (images embedded); open it in a browser, press P for the presenter view with the notes |
+| `slides.md` | (local, gitignored) the Marp source, speaker notes as HTML comments |
 | `participant-kit/` | the hand-out project; has its own `README.md` for participants, and `stage-cards.md` (the whole path with any AI) with `scripts/bundle.sh` (paste files into a chat) |
 | `participant-invite.md` | the message to send a few days before (laptop optional, any AI) |
 | `reference/layered/` | **Track B answer key and fallback** (never for participants): a finished layered framework (`src/`, `tests/`, `playwright.config.ts`), copied over a kit when the writer is slow or wrong; see its `README.md` |

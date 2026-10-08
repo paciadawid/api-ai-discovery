@@ -37,7 +37,7 @@ The cart slice needs no login; `.env` is only for account slices. Credentials ar
 
 ## Claude Code
 
-- `/qa-cycle <url> [scope] [limits: workshop]`: the full cycle (scout, discover, design, prioritise, write, run and debug, sabotage, strengthen), with a visual page after each stage.
-- `/qa-workshop [scope]`: the workshop variant, same cycle with the workshop limits, output under `qa/workshop/<slug>/`.
+- `/qa-cycle`: the cycle as it stood before the master class: discover, design, prioritise, write, run and debug. The newer cycle (Scout and Scope gate, Map it, Sabotage, Strengthen, a visual page after each stage) lives in `../workshop/track-b-with-kit/participant-kit/`; `qa/06-sabotage-report.md`, `qa/07-strengthen-report.md` and `qa/visuals/` were produced by it.
+- `/qa-workshop [scope]`: the workshop-sized variant of that earlier cycle, output under `qa/workshop/<slug>/`.
 
 Conventions and framework rules are in `CLAUDE.md` and `.claude/rules/`.

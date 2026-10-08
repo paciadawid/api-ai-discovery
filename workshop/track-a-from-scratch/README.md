@@ -4,8 +4,9 @@ You drive, the room follows. Participants arrive with a laptop and no kit; you b
 
 | File / folder | What it is |
 |---|---|
-| `conspect.md` | facilitator script: prep checklist, paste map, run sheet, what to say per block, fallback ladder, facts |
-| `slides.md` | Marp deck (short slides, speaker notes as HTML comments); `slides.html` is the rendered copy |
+| `conspect.md` | (local, gitignored) facilitator script: prep checklist, paste map, run sheet, what to say per block, fallback ladder, facts |
+| `slides.html` | the rendered deck, self-contained; open it in a browser, press P for the presenter view with the notes |
+| `slides.md` | (local, gitignored) the Marp source, speaker notes as HTML comments |
 | `starter/` | the project in its final form: `CLAUDE.md`, `playwright.config.ts`, `package.json`, `.gitignore`, `.claude/agents/{explorer,designer,writer,debugger}.md`, `.claude/commands/cycle.md`, `scripts/` (exporters + Swagger server) |
 | `reference/` | the answer-key suite (`cart.spec.ts`, 6 tests) with its own config and `package.json` |
 | `fallback/` | pre-baked discovery (`endpoints.json`, `auth.md`) and the Postbot-improved Postman collection plus its environment |
