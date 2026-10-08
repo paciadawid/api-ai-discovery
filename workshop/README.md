@@ -7,30 +7,27 @@ An AI test crew that explores an undocumented API, writes and debugs tests, and 
 | Folder | Use it when |
 |---|---|
 | `track-a-from-scratch/` | participants arrive with **nothing**; you build the project and the agents live (`starter/` is the safety net) |
-| `track-b-with-kit/` | participants already have the **kit** (`participant-kit/`) and drive in pairs, one laptop per pair: Claude Code runs `/qa-workshop <slice>`, any other AI follows `stage-cards.md` (open registration, laptops optional) |
+| `track-b-with-kit/` | participants already have the **kit** (`participant-kit/`) and drive in pairs, one laptop per pair: Claude Code runs `/qa-cycle <url> <slice> limits: workshop`, any other AI follows `stage-cards.md` (open registration, laptops optional) |
 | `_archive/` | the old combined slides and run sheet; safe to delete |
-| `../solution/` | the finished **demo project**: layered framework, 33 tests, Postman and Swagger exports; show it, do not hand it out |
+| `../solution/` | the finished **demo project**: layered framework, the cart slice (5 live tests), QA artifacts and visual pages, Postman and Swagger exporters; show it, do not hand it out |
 
-Each track is a self-contained subproject: `conspect.md` (facilitator script), `slides.md` (Marp, 28 short slides), `README.md`, reference suite, finished artifacts, scripts. Assets are duplicated on purpose.
+Each track is a self-contained subproject: `conspect.md` (facilitator script), `slides.md` (Marp, short slides with speaker notes), `slides.html` (rendered, self-contained), `README.md`, reference suite, finished artifacts, scripts. Assets are duplicated on purpose.
 
 ## Shared agenda
 
-| Time | Min | Block |
-|---|---|---|
-| 0:00 | 5 | Hook |
-| 0:05 | 10 | Setup |
-| 0:15 | 6 | Narrow |
-| 0:21 | 14 | Explore (2 headed browsers) |
-| 0:35 | 4 | Gate 1 |
-| 0:39 | 10 | **Map it**: export, newman red, Postbot-improved green, Swagger, `ideas.md` |
-| 0:49 | 8 | Design + Gate 2 |
-| 0:57 | 5 | Break |
-| 1:02 | 7 | Assertion lab (real Postbot checks as exhibits) |
-| 1:09 | 14 | Write |
-| 1:23 | 7 | Sabotage |
-| 1:30 | 9 | **Debug with Swagger** (replay a failing call) |
-| 1:39 | 4 | Recap |
-| 1:43 | 2 | Buffer |
+1. Hook
+2. Setup
+3. Narrow (Track A) or Scout and **Scope gate** (Track B)
+4. Explore or Discovery, with headed browsers
+5. **Gate 1**
+6. **Map it**: export, newman red, Postbot-improved green, Swagger, `ideas.md`
+7. Design or Use cases and Prioritize, then **Gate 2**
+8. Break
+9. Assertion lab (real Postbot checks as exhibits)
+10. Write
+11. Run and debug (replay a failing call in Swagger)
+12. Sabotage (and Strengthen in Track B)
+13. Recap
 
 Same nine assertion rules, cut order and fallback ladder in both tracks. Only setup and "who types" differ.
 
@@ -42,15 +39,16 @@ Same nine assertion rules, cut order and fallback ladder in both tracks. Only se
 
 ## Demo click path (`../solution/`)
 
-1. `qa/workshop/cartws/test-map.html`: what each test checks.
-2. `cd ../solution && npx playwright test tests/cartws`: 12 tests green.
-3. `tests/cartws/changing-quantity.api.spec.ts`: behaviour titles, no HTTP in the spec, `@known-issue` for KI-1.
-4. `src/` layers and `npm run verify`.
-5. `qa/workshop/cartws/04-coverage.md`, section "Adopted from the Postbot collection".
+1. `qa/visuals/index.html`: the whole run, one page per stage.
+2. `qa/visuals/05-tests.html`: what each test checks.
+3. `cd ../solution && npx playwright test`: 5 live cart tests (needs network, no login for the cart).
+4. `tests/cart/changing-quantity.api.spec.ts`: behaviour titles, no raw HTTP in the spec.
+5. `src/` layers and `npm run verify`.
+6. `qa/06-sabotage-report.md` and `qa/07-strengthen-report.md`, with `qa/visuals/07-sabotage.html`.
 
 ## Before either day
 
-- One timed rehearsal per track; replace the budgets with real minutes.
+- One full rehearsal per track, end to end, on a participant-like laptop.
 - Morning of: the reference suite, the sabotage script and the Map it check of the track you teach (in its conspect, section 1).
-- Render slides: `npx @marp-team/marp-cli <track>/slides.md --html`.
-- The repo is public: https://github.com/paciadawid/api-ai-discovery. Facilitator conspects, slides and `_archive/` are gitignored and stay local.
+- Render slides: `npx @marp-team/marp-cli <track>/slides.md --html --allow-local-files`. The title slide of Track B reads `img/` (local, gitignored); the committed `slides.html` embeds those images.
+- The repo is public: https://github.com/paciadawid/api-ai-discovery. Facilitator conspects, `slides.md` and `_archive/` are gitignored and stay local; the rendered `slides.html` is committed and contains the speaker notes (press P for the presenter view).

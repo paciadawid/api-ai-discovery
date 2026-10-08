@@ -5,7 +5,7 @@ Each pair has `participant-kit/` (eight agents, two commands, three skills, four
 | File / folder | What it is |
 |---|---|
 | `conspect.md` | facilitator script: prep, kit tour, run sheet, what to say per block, the Gate 2 hold, fallback ladder, facts |
-| `slides.md` | Marp deck (30 short slides, speaker notes as HTML comments) |
+| `slides.md` | Marp deck (short slides, speaker notes as HTML comments); `slides.html` is the rendered, self-contained copy |
 | `participant-kit/` | the hand-out project; has its own `README.md` for participants, and `stage-cards.md` (the whole path with any AI) with `scripts/bundle.sh` (paste files into a chat) |
 | `participant-invite.md` | the message to send a few days before (laptop optional, any AI) |
 | `reference/layered/` | **Track B answer key and fallback** (never for participants): a finished layered framework (`src/`, `tests/`, `playwright.config.ts`), copied over a kit when the writer is slow or wrong; see its `README.md` |
@@ -16,14 +16,16 @@ Each pair has `participant-kit/` (eight agents, two commands, three skills, four
 ## Render the slides
 
 ```bash
-npx @marp-team/marp-cli slides.md --html
+npx @marp-team/marp-cli slides.md --html --allow-local-files
 ```
+
+The title slide uses `img/` (the HUSTEF logo and a speaker photo). That folder is local and gitignored; the committed `slides.html` has the images embedded.
 
 ## Hand out
 
 Send `participant-invite.md` a few days before. The kit is in the public repo (`workshop/track-b-with-kit/participant-kit`) and can also be zipped (exclude `node_modules/`). Participants run `npm ci`, `bash scripts/preflight.sh` and `npm run verify` on their own; `npx playwright install chromium` is only for the Claude Code agents. Laptops are optional (pairs), and the AI is theirs: Claude Code agents or `stage-cards.md` with any chat AI.
 
-## Rehearse (about 20 min plus the live run)
+## Rehearse
 
 ```bash
 cp -R participant-kit /tmp/kit-rehearsal && cd /tmp/kit-rehearsal
@@ -34,10 +36,10 @@ cp -R ../path/to/track-b-with-kit/reference/layered/{src,tests,playwright.config
 npm run verify && npx playwright test                      # 1 gate + 9 cart + known-issue + spike + 16 unit
 ```
 
-Then open Claude Code in a fresh copy (reload so the agents are visible) and run `/qa-cycle https://bearstore-testsite.smartbear.com cart limits: workshop` for the real thing: the first write builds the layers from scratch, so time it, including Run and debug and then the sabotage steps 6 and 7. The old flat sabotage drill (`scripts/sabotage.sh` on `reference/cart.spec.ts`) is Track A only.
+Then open Claude Code in a fresh copy (reload so the agents are visible) and run `/qa-cycle https://bearstore-testsite.smartbear.com cart limits: workshop` for the real thing: the first write builds the layers from scratch, so run it through Run and debug and then the sabotage steps 6 and 7. The old flat sabotage drill (`scripts/sabotage.sh` on `reference/cart.spec.ts`) is Track A only.
 
 ## Not here
 
 - The demo project (layered framework, `qa/workshop/cartws/test-map.html`) is `../../solution/`.
-- Timings are budgets from dry runs; nothing is measured end to end, and a participant laptop run has never been timed.
+- A full run on a participant laptop has not been rehearsed end to end.
 - `stage-cards.md` was checked mechanically (bundle, exports, newman, preflight without a browser download); its AI prompts have not been run with a non-Claude AI.

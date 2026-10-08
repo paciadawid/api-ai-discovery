@@ -5,7 +5,7 @@ You drive, the room follows. Participants arrive with a laptop and no kit; you b
 | File / folder | What it is |
 |---|---|
 | `conspect.md` | facilitator script: prep checklist, paste map, run sheet, what to say per block, fallback ladder, facts |
-| `slides.md` | Marp deck (28 short slides, speaker notes as HTML comments) |
+| `slides.md` | Marp deck (short slides, speaker notes as HTML comments); `slides.html` is the rendered copy |
 | `starter/` | the project in its final form: `CLAUDE.md`, `playwright.config.ts`, `package.json`, `.gitignore`, `.claude/agents/{explorer,designer,writer,debugger}.md`, `.claude/commands/cycle.md`, `scripts/` (exporters + Swagger server) |
 | `reference/` | the answer-key suite (`cart.spec.ts`, 6 tests) with its own config and `package.json` |
 | `fallback/` | pre-baked discovery (`endpoints.json`, `auth.md`) and the Postbot-improved Postman collection plus its environment |
@@ -19,7 +19,7 @@ npx @marp-team/marp-cli slides.md --html          # slides.html
 npx @marp-team/marp-cli slides.md --html --pdf    # optional PDF
 ```
 
-## Rehearse (about 30 min, no browser needed except for explore)
+## Rehearse (no browser needed except for explore)
 
 ```bash
 mkdir -p ~/bearstore-tests && cd ~/bearstore-tests
@@ -53,4 +53,4 @@ Open `artifacts/cartws-run/test-map.html` in a browser for the "what does one fi
 ## What is not here
 
 - The layered framework: it lives in the demo project `../../solution/`. The exporter scripts are in `starter/scripts/` so that the Map it block runs live.
-- Timings are budgets from dry runs, not measurements.
+- A full run end to end on a participant laptop has not been rehearsed.

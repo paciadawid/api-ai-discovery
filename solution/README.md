@@ -8,19 +8,19 @@ The finished demo project for the workshop: API-only Playwright tests against Be
 cd solution
 npm install
 cp .env.example .env     # then fill BEARSTORE_EMAIL and BEARSTORE_PASSWORD
-npm test                 # 33 tests
+npm test                 # 5 live cart tests (guest, no login)
 npm run verify           # typecheck + framework rules check
 ```
 
-Credentials are read only in `src/config/env.ts`. `.env` is gitignored; never commit or log it.
+The cart slice needs no login; `.env` is only for account slices. Credentials are read only in `src/config/env.ts`. `.env` is gitignored; never commit or log it.
 
 ## Layout
 
 | Path | What |
 |---|---|
 | `src/` | layered framework: `config`, `api`, `domain`, `actors`, `matchers`, `fixtures` |
-| `tests/<area>/*.api.spec.ts` | behaviour specs only (`auth`, `cart`, `cartws`, `catalog`, `content`, `search`); no raw HTTP in specs |
-| `qa/` | QA artifacts: discovery, use cases, selection, coverage, run report; `qa/workshop/cart/fallback/` holds pre-baked cart data and the Postbot-improved collection |
+| `tests/<area>/*.api.spec.ts` | behaviour specs only (now `cart`: adding, changing quantity, removing, isolation); no raw HTTP in specs |
+| `qa/` | the cart run: `01-discovery/`, `02-use-cases.md`, `03-selected.md`, `04-coverage.md`, `05-run-report.md`, `06-sabotage-report.md`, `07-strengthen-report.md`, and `visuals/` (one page per stage, start at `index.html`). `qa/workshop/` holds older runs: `cart/fallback/` is the pre-baked cart data and Postbot-improved collection used as the workshop fallback; `cartws/` and `cartscout/` are earlier results that no longer match the current tests |
 | `scripts/` | exporters (Postman, OpenAPI), Swagger server, scope extractor, framework check |
 | `exports/` | generated Postman and OpenAPI files (regenerable, gitignored) |
 | `.claude/` | agents, commands (`/qa-cycle`, `/qa-workshop`), rules and skills that drive the cycle |
@@ -37,7 +37,7 @@ Credentials are read only in `src/config/env.ts`. `.env` is gitignored; never co
 
 ## Claude Code
 
-- `/qa-cycle`: the full cycle (discover, design, prioritise, write, run, debug).
-- `/qa-workshop [scope]`: the time-boxed workshop cycle, default scope cart manipulation, output under `qa/workshop/<slug>/`.
+- `/qa-cycle <url> [scope] [limits: workshop]`: the full cycle (scout, discover, design, prioritise, write, run and debug, sabotage, strengthen), with a visual page after each stage.
+- `/qa-workshop [scope]`: the workshop variant, same cycle with the workshop limits, output under `qa/workshop/<slug>/`.
 
 Conventions and framework rules are in `CLAUDE.md` and `.claude/rules/`.
