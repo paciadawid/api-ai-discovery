@@ -1,18 +1,18 @@
-# Workshop: tests worth trusting (105 min)
+# Workshops: tests worth trusting
 
-An AI test crew that explores an undocumented API, writes and debugs tests, and a way to check that those tests deserve your trust. Target: the Bearstore demo shop (SmartStore). Postman (with Postbot) gives better flow and structure; Swagger UI gives a debugging console.
+Two workshops on one idea: AI makes tests cheap, so check that they deserve your trust. **Track A** is the 8-hour TestWarez 2026 day on the Toolshop practice API (a more basic audience, participants build their own framework with their own user). **Track B** is the 105-minute facilitator-led version on the Bearstore demo shop (SmartStore), the trickier undocumented API. Postman (with Postbot) gives better flow and structure; Swagger UI gives a debugging console.
 
 ## Layout
 
 | Folder | Use it when |
 |---|---|
-| `track-a-from-scratch/` | participants arrive with **nothing**; you build the project and the agents live (`starter/` is the safety net) |
+| `track-a-from-scratch/` | the **8-hour day**: participants get `participant-kit/` and build a layered Playwright API framework step by step (Postman and Postbot discovery, IDE agent coding, CI, challenge); `facilitator/` (answer keys and the finished `solution/`) is yours: hand out the zip from `build-kit.sh`, not the repo |
 | `track-b-with-kit/` | participants already have the **kit** (`participant-kit/`) and drive in pairs, one laptop per pair: Claude Code runs `/qa-cycle <url> <slice> limits: workshop`, any other AI follows `stage-cards.md` (open registration, laptops optional) |
 | `../solution/` | the finished **demo project**: layered framework, the cart slice (5 live tests), QA artifacts and visual pages, Postman and Swagger exporters; show it, do not hand it out |
 
 Each track is a self-contained subproject: `slides.html` (rendered deck, self-contained), `README.md`, reference suite, finished artifacts, scripts. The facilitator script `conspect.md` and the Marp source `slides.md` (speaker notes as HTML comments) are gitignored and live only on the facilitator's machine. Assets are duplicated between tracks on purpose.
 
-## Shared agenda
+## Shared agenda (Track B, 105 min; Track A has its own block list in its README)
 
 1. Hook
 2. Setup

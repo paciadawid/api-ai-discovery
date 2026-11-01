@@ -1,0 +1,33 @@
+name: api-tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Your own Toolshop user. Add both under Settings > Secrets and variables > Actions.
+      TOOLSHOP_EMAIL: ${{ secrets.TOOLSHOP_EMAIL }}
+      TOOLSHOP_PASSWORD: ${{ secrets.TOOLSHOP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+      # API tests need no browser, so there is no `playwright install` step.
+      - run: npx playwright test
+      - name: Keep the report, also when tests fail
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

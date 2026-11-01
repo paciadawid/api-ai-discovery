@@ -1,0 +1,19 @@
+{
+  "name": "twz26-api-tests",
+  "private": true,
+  "description": "TestWarez 2026: building an AI-assisted API test framework, step by step",
+  "type": "module",
+  "engines": { "node": ">=20.12" },
+  "scripts": {
+    "test": "playwright test",
+    "verify": "tsc --noEmit",
+    "report": "playwright show-report",
+    "preflight": "node scripts/preflight.mjs",
+    "user:create": "node scripts/create-user.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
