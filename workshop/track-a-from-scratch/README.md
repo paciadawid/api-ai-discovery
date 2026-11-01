@@ -7,7 +7,8 @@ Track B (`../track-b-with-kit/`) is the 105-minute version on the harder Bearsto
 | Folder / file | What it is |
 |---|---|
 | `participant-kit/` | the hand-out, in two halves. **Framework** (root): `src/` `tests/` `qa/` `scripts/` `AGENTS.md` `playwright.config.ts`. **Workshop** (`workshop/`): `steps/` (one card per block), `prompts.md`, `rules.md`, `challenge.md`, `checkpoints/`, `escape-room/`, `hallucination-hunt/`, the spec and the pipeline. |
-| `facilitator/` | never hand out. Answer keys for the gap hunts, the escape room and the hallucination hunt, plus `solution/`: the finished layered framework (Toolshop and PokeAPI) that verifies everything and feeds the sabotage demo |
+| `solution/` | facilitator only, never hand out. The finished layered framework (Toolshop and PokeAPI) that verifies everything and feeds the sabotage demo, plus `answer-keys/` for the gap hunts, the escape room and the hallucination hunt |
+| `invite.md` | the e-mail to send participants a few days ahead |
 | `publish-kit.sh` | syncs `participant-kit/` into the public template repo `paciadawid/prompt-to-pipeline-kit` (guards against answer keys and `.env`); participants use that (https://github.com/paciadawid/prompt-to-pipeline-kit), never this repo |
 | `build-kit.sh` | offline fallback: builds `dist/participant-kit.zip` (no answer keys, no `.env`, no `node_modules`) |
 | `scripts/sabotage.sh` | breaks `src/` one way at a time to show which tests notice |
@@ -35,16 +36,16 @@ The nine assertion rules are taught in three steps (`participant-kit/workshop/ru
 
 ```bash
 cd participant-kit && npm ci && npm run preflight        # Pre-flight OK
-cd ../facilitator/solution && npm ci && npm run verify   # typecheck
+cd ../solution && npm ci && npm run verify   # typecheck
 npx playwright test --project=pokeapi                    # no account needed
 npm run user:create -- <nick>                            # once: your own facilitator user, writes .env (gitignored)
 npm test                                                 # all green, about 30 s
-cd ../.. && bash scripts/sabotage.sh facilitator/solution  # every mutant CAUGHT
+cd ../.. && bash scripts/sabotage.sh solution  # every mutant CAUGHT
 bash publish-kit.sh /tmp/prompt-to-pipeline-kit --push  # after any kit edit: sync the public template
 bash build-kit.sh                                        # offline fallback: dist/participant-kit.zip
 ```
 
-The host is a shared practice site that is reseeded now and then: re-check `facilitator/gaps-answer-key.md` the evening before. Send participants the prerequisites (Node 20.12+, an IDE with an AI agent, a Postman account, a GitHub account, a nick) a few days ahead, and ask them to run `npm ci` in the kit before the day.
+The host is a shared practice site that is reseeded now and then: re-check `solution/answer-keys/gaps-answer-key.md` the evening before. Send participants the prerequisites (Node 20.12+, an IDE with an AI agent, a Postman account, a GitHub account, a nick) a few days ahead, and ask them to run `npm ci` in the kit before the day.
 
 **Do not run the answer-key login tests in a loop.** The host locks an account after a few failed logins (HTTP 423) and nothing here unlocks it. The kit teaches this too: refuse with an unknown e-mail, never a wrong password for your own user.
 
@@ -55,7 +56,7 @@ bash render.sh        # slides.md + theme.css -> slides.html (images are embedde
 ```
 
 ## Known limits
-- The logged-in answer-key tests (auth and favorites) need a user in `facilitator/solution/.env`; the guest tests (products, filters, cart, pokeapi) run without one.
+- The logged-in answer-key tests (auth and favorites) need a user in `solution/.env`; the guest tests (products, filters, cart, pokeapi) run without one.
 - The Postman import of the OpenAPI 3.1 copy and the Postbot UI steps have not been rehearsed in the Postman app.
 - The GitHub Actions workflows are YAML-checked only. Escape-room breaks 1 to 3 were reproduced locally, break 4 was not.
 - A full day with real participants has not been run.

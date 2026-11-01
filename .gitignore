@@ -16,7 +16,6 @@ blob-report/
 # facilitator material kept local
 workshop/*/conspect.md
 workshop/*/slides.md
-workshop/*/facilitator/
 workshop/_archive/
 
 # local / sensitive by habit

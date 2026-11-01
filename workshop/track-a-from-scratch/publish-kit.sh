@@ -17,7 +17,7 @@ rsync -a --delete \
   participant-kit/ "$target/"
 
 # The kit must never carry answer keys, credentials or the facilitator folder.
-if find "$target" -path "$target/.git" -prune -o \( -iname 'facilitator' -o -iname '*answer*' -o -name '.env' \) -print | grep -q .; then
+if find "$target" -path "$target/.git" -prune -o \( -iname 'facilitator' -o -iname 'solution' -o -iname '*answer*' -o -name '.env' \) -print | grep -q .; then
   echo "ERROR: answer keys, facilitator material or .env in $target" >&2; exit 1
 fi
 [ -f "$target/package-lock.json" ] || { echo "ERROR: package-lock.json missing (npm ci needs it)" >&2; exit 1; }

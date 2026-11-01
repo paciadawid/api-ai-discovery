@@ -1,0 +1,22 @@
+{
+  "name": "twz26-reference",
+  "private": true,
+  "description": "Facilitator answer key for the TestWarez 2026 API testing workshop (Toolshop + PokeAPI). Not a hand-out.",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:toolshop": "playwright test --project=toolshop",
+    "test:pokeapi": "playwright test --project=pokeapi",
+    "typecheck": "tsc --noEmit",
+    "verify": "tsc --noEmit",
+    "report": "playwright show-report",
+    "user:create": "node scripts/create-user.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

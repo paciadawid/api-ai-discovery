@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # "Prove the tests can fail": break the code under the tests (src/) one way at a time and see which run notices.
 # Usage: [MUTANTS="1 3"] [PW_ARGS="tests/products tests/cart"] bash scripts/sabotage.sh <project-dir>
-#   Answer key:        bash scripts/sabotage.sh facilitator/solution
+#   Answer key:        bash scripts/sabotage.sh solution
 #   Your own project:  run it from the kit folder:  bash <path>/sabotage.sh .
 # Every sabotage runs in a throw-away COPY of the project (node_modules is linked, .env is copied): the original is never edited.
 # Mutant 6 makes the fixture lose track of favorites it created, so a run can leave one behind: if your next `npm test` fails the "not a favorite yet" precondition, remove it in Postman (that is the hint doing its job).
